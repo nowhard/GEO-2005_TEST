@@ -57,8 +57,8 @@ volatile unsigned char xdata    CUT_OUT_NULL=0;//флаг-вырезаем 0 после 0xD7
 volatile unsigned char xdata    frame_len=0;//длина кадра, которую вытаскиваем из шестого байта кадра
 //--------------------------------------------------------------------
 volatile unsigned char xdata    RecieveBuf[MAX_LENGTH_REC_BUF]={0} ; //буфер принимаемых данных
-volatile unsigned char xdata    Transfer[MAX_LENGTH_REC_BUF]={0xD7};
-volatile unsigned char xdata 	*TransferBuf;
+volatile unsigned char xdata    TransferBuf[MAX_LENGTH_REC_BUF]={0xD7};
+//volatile unsigned char xdata 	*TransferBuf;
 //--------------------------------------------------------------------
 volatile unsigned char xdata    STATE_BYTE=0xC0;//байт состояния устройства
 volatile unsigned char xdata    symbol=0xFF;//принятый символ
@@ -213,7 +213,7 @@ void Protocol_Init(void) //using 0
 	TI=0;
 	RI=0;
 	
-	TransferBuf=&Transfer[0];//&RecieveBuf[0];	 //буфер ответа =буфер запроса
+//	TransferBuf=&Transfer[0];//&RecieveBuf[0];	 //буфер ответа =буфер запроса
 
 	recieve_count=0x0;//счетчик буфера приема
 	transf_count=0x0;//счетчик передаваемых байтов
@@ -367,26 +367,26 @@ channels[8].channel_data=log_port_in_1;
 	                 {
 						  case 0:
 						  {
-						  		if(channels[i].calibrate.cal.calibrate==1)//калиброванный
-								{			 			 
-								//	 if(channels[i].settings.set.modific==0x00 || channels[i].settings.set.modific==0x01)
-								//	 {
-									 	TransferBuf[index+7]=((channels[i].channel_data_calibrate)&0x0000FF00)>>8;
-									  	index++;
-			    					  	TransferBuf[index+7]=((channels[i].channel_data_calibrate)&0x00FF0000)>>16;
-									  	index++;
-								//	 } 
-								}
-								else
-								{
-									// if(channels[i].settings.set.modific==0x00 || channels[i].settings.set.modific==0x01)		   // если модифи-я 2 и 3 т.е. 24-разрядные значения то 3 байта на значение 
-								//	 {
+//						  		if(channels[i].calibrate.cal.calibrate==1)//калиброванный
+//								{			 			 
+//								//	 if(channels[i].settings.set.modific==0x00 || channels[i].settings.set.modific==0x01)
+//								//	 {
+//									 	TransferBuf[index+7]=((channels[i].channel_data_calibrate)&0x0000FF00)>>8;
+//									  	index++;
+//			    					  	TransferBuf[index+7]=((channels[i].channel_data_calibrate)&0x00FF0000)>>16;
+//									  	index++;
+//								//	 } 
+//								}
+//								else
+//								{
+//									// if(channels[i].settings.set.modific==0x00 || channels[i].settings.set.modific==0x01)		   // если модифи-я 2 и 3 т.е. 24-разрядные значения то 3 байта на значение 
+//								//	 {
 										TransferBuf[index+7]=((channels[i].channel_data)&0x0000FF00)>>8;
 									  	index++;
 			    					  	TransferBuf[index+7]=((channels[i].channel_data)&0x00FF0000)>>16;
 									  	index++;
 									// }	
-								} 
+//								} 
 
 								  
 								  TransferBuf[index+7]=channels[i].settings.set.state_byte_1;	 // первый байт состояния канала
@@ -396,33 +396,33 @@ channels[8].channel_data=log_port_in_1;
 						  }
 						  break; 
 
-						  case 1:
-						  {
-						  }
-						  break;
-
-			        	  case 2: 
-						  {
-						  }
-						  break;
+//						  case 1:
+//						  {
+//						  }
+//						  break;
+//
+//			        	  case 2: 
+//						  {
+//						  }
+//						  break;
 
 						  case 3:
 						  {
-						        if(channels[i].calibrate.cal.calibrate==1)//калиброванный
-								{			 
-						 			// if(channels[i].settings.set.modific==0x02 || channels[i].settings.set.modific==0x03)		   // если модифи-я 2 и 3 т.е. 24-разрядные значения то 3 байта на значение 
-								//	 {									  
-									  	TransferBuf[index+7]=((channels[i].channel_data_calibrate)&0x000000FF); // данные с АЦП
-							          	index++;
-									  	TransferBuf[index+7]=((channels[i].channel_data_calibrate)&0x0000FF00)>>8;
-									  	index++;
-			    					  	TransferBuf[index+7]=((channels[i].channel_data_calibrate)&0x00FF0000)>>16;
-									  	index++;
-		  						  	// }
-								}
-								else
-								{
-								//	 if(channels[i].settings.set.modific==0x02 || channels[i].settings.set.modific==0x03)		   // если модифи-я 2 и 3 т.е. 24-разрядные значения то 3 байта на значение 
+//						        if(channels[i].calibrate.cal.calibrate==1)//калиброванный
+//								{			 
+//						 			// if(channels[i].settings.set.modific==0x02 || channels[i].settings.set.modific==0x03)		   // если модифи-я 2 и 3 т.е. 24-разрядные значения то 3 байта на значение 
+//								//	 {									  
+//									  	TransferBuf[index+7]=((channels[i].channel_data_calibrate)&0x000000FF); // данные с АЦП
+//							          	index++;
+//									  	TransferBuf[index+7]=((channels[i].channel_data_calibrate)&0x0000FF00)>>8;
+//									  	index++;
+//			    					  	TransferBuf[index+7]=((channels[i].channel_data_calibrate)&0x00FF0000)>>16;
+//									  	index++;
+//		  						  	// }
+//								}
+//								else
+//								{
+//								//	 if(channels[i].settings.set.modific==0x02 || channels[i].settings.set.modific==0x03)		   // если модифи-я 2 и 3 т.е. 24-разрядные значения то 3 байта на значение 
 									// {									 
 									  	TransferBuf[index+7]=((channels[i].channel_data)&0x000000FF); // данные с АЦП
 							          	index++;
@@ -431,7 +431,7 @@ channels[8].channel_data=log_port_in_1;
 			    					  	TransferBuf[index+7]=((channels[i].channel_data)&0x00FF0000)>>16;
 									  	index++;
 								//	 }	
-								} 
+//								} 
 
 								  
 								  TransferBuf[index+7]=channels[i].settings.set.state_byte_1;	 // первый байт состояния канала
@@ -637,7 +637,6 @@ PT_THREAD(Timer_Get_Time(struct pt *pt, unsigned char *buffer_len))//Считать пар
   PT_END(pt);
 }
 //-----------------------------------------------------------------------------
-
 PT_THREAD(Memory_Write_Buf(struct pt *pt, unsigned char *buffer_len))//Записать буфер в памать I2C
 {
   static unsigned int buf_addr;
@@ -646,12 +645,14 @@ PT_THREAD(Memory_Write_Buf(struct pt *pt, unsigned char *buffer_len))//Записать 
   static unsigned char err;
   PT_BEGIN(pt);
 
+
+
 	buf_addr=((unsigned int)RecieveBuf[6]<<8)|RecieveBuf[7];
 	buf_mem_len=RecieveBuf[8];
 	
 	if((buf_mem_len>255) || ((buf_addr+buf_mem_len)>NVRAM_SIZE))	//адрес превышен
 	{
-  	  	*buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
+  	  	*buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);		
 	  	PT_EXIT(pt); 		
 	}   
 
@@ -665,7 +666,7 @@ PT_THREAD(Memory_Write_Buf(struct pt *pt, unsigned char *buffer_len))//Записать 
 	}
 	else
 	{
-		buffer_len[0]=Request_Error(FR_SUCCESFUL);
+		*buffer_len=Request_Error(FR_SUCCESFUL);		
   	}
   PT_END(pt);
 }
@@ -744,11 +745,13 @@ PT_THREAD(ProtoProcess(struct pt *pt))
   {
   //----------restart------------
 		recieve_count=0x0;//??
+		buf_len=0;
 		REN=1;//recieve enqble
 		DE_RE=0;//линия на прием
 		ES=1;
 		RI=0;
 		TI=0;
+  //-----------------------------
   //-----------------------------
 	   PT_WAIT_UNTIL(pt,RECIEVED); //ждем команды на старт
 	   RECIEVED=0;
@@ -806,16 +809,16 @@ PT_THREAD(ProtoProcess(struct pt *pt))
 				 PT_SPAWN(pt, &pt_handle_thread, Timer_Get_Time(&pt_handle_thread,&buf_len));
 			}
 		//------------------------------------------
-			else if(RecieveBuf[4]==MEMORY_WRITE_BUF_REQ)
-			{
-				 PT_INIT(&pt_handle_thread);
-				 PT_SPAWN(pt, &pt_handle_thread, Memory_Write_Buf(&pt_handle_thread,&buf_len));
-			}
-		//------------------------------------------
 			else if(RecieveBuf[4]==MEMORY_READ_BUF_REQ)
 			{
 				 PT_INIT(&pt_handle_thread);
 				 PT_SPAWN(pt, &pt_handle_thread, Memory_Read_Buf(&pt_handle_thread,&buf_len));
+			}
+		//------------------------------------------
+			else if(RecieveBuf[4]==MEMORY_WRITE_BUF_REQ)
+			{
+				 PT_INIT(&pt_handle_thread);
+				 PT_SPAWN(pt, &pt_handle_thread, Memory_Write_Buf(&pt_handle_thread,&buf_len));
 			}
 //------------------------------------------
 	
