@@ -637,6 +637,7 @@ PT_THREAD(Timer_Get_Time(struct pt *pt, unsigned char *buffer_len))//—читать пар
   PT_END(pt);
 }
 //-----------------------------------------------------------------------------
+
 PT_THREAD(Memory_Write_Buf(struct pt *pt, unsigned char *buffer_len))//«аписать буфер в памать I2C
 {
   static unsigned int buf_addr;
@@ -645,14 +646,12 @@ PT_THREAD(Memory_Write_Buf(struct pt *pt, unsigned char *buffer_len))//«аписать 
   static unsigned char err;
   PT_BEGIN(pt);
 
-
-
 	buf_addr=((unsigned int)RecieveBuf[6]<<8)|RecieveBuf[7];
 	buf_mem_len=RecieveBuf[8];
 	
 	if((buf_mem_len>255) || ((buf_addr+buf_mem_len)>NVRAM_SIZE))	//адрес превышен
 	{
-  	  	*buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);		
+  	  	*buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
 	  	PT_EXIT(pt); 		
 	}   
 
@@ -666,7 +665,7 @@ PT_THREAD(Memory_Write_Buf(struct pt *pt, unsigned char *buffer_len))//«аписать 
 	}
 	else
 	{
-		*buffer_len=Request_Error(FR_SUCCESFUL);		
+		buffer_len[0]=Request_Error(FR_SUCCESFUL);
   	}
   PT_END(pt);
 }
@@ -745,13 +744,11 @@ PT_THREAD(ProtoProcess(struct pt *pt))
   {
   //----------restart------------
 		recieve_count=0x0;//??
-		buf_len=0;
 		REN=1;//recieve enqble
 		DE_RE=0;//лини€ на прием
 		ES=1;
 		RI=0;
 		TI=0;
-  //-----------------------------
   //-----------------------------
 	   PT_WAIT_UNTIL(pt,RECIEVED); //ждем команды на старт
 	   RECIEVED=0;
@@ -763,10 +760,10 @@ PT_THREAD(ProtoProcess(struct pt *pt))
 				
 	    CRC=RecieveBuf[recieve_count-1];
 				
-//		if(CRC_Check(&RecieveBuf,(recieve_count-CRC_LEN))!=CRC)
-//		{		
-//			PT_RESTART(pt);//если CRC не сошлось-перезапустим протокол	 
-//		}
+		if(CRC_Check(&RecieveBuf,(recieve_count-CRC_LEN))!=CRC)
+		{		
+			PT_RESTART(pt);//если CRC не сошлось-перезапустим протокол	 
+		}
 		PT_YIELD(pt);//дадим другим процессам врем€
   //-----------------------------	
 
@@ -809,16 +806,16 @@ PT_THREAD(ProtoProcess(struct pt *pt))
 				 PT_SPAWN(pt, &pt_handle_thread, Timer_Get_Time(&pt_handle_thread,&buf_len));
 			}
 		//------------------------------------------
-			else if(RecieveBuf[4]==MEMORY_READ_BUF_REQ)
-			{
-				 PT_INIT(&pt_handle_thread);
-				 PT_SPAWN(pt, &pt_handle_thread, Memory_Read_Buf(&pt_handle_thread,&buf_len));
-			}
-		//------------------------------------------
 			else if(RecieveBuf[4]==MEMORY_WRITE_BUF_REQ)
 			{
 				 PT_INIT(&pt_handle_thread);
 				 PT_SPAWN(pt, &pt_handle_thread, Memory_Write_Buf(&pt_handle_thread,&buf_len));
+			}
+		//------------------------------------------
+			else if(RecieveBuf[4]==MEMORY_READ_BUF_REQ)
+			{
+				 PT_INIT(&pt_handle_thread);
+				 PT_SPAWN(pt, &pt_handle_thread, Memory_Read_Buf(&pt_handle_thread,&buf_len));
 			}
 //------------------------------------------
 	
