@@ -29,7 +29,7 @@ XRAMEN EQU 1  ; 0 = Disable on-chip XDATA RAM
 ;
 ; <e> EXSP: Enable extended XRAM stack (16-bit Stack Pointer)
 ;           <i> NOTE: The Extended Stack Mode works only with enabled on-chip XDATA RAM!
-EXSP EQU 1  ; 0 = 8-bit stack pointer in IDATA
+EXSP EQU 0  ; 0 = 8-bit stack pointer in IDATA
 ;             1 = 16-bit stack pointer in XDATA
 ;
 ; CPU Stack Size Definition in Extended Stack Mode:
@@ -42,10 +42,10 @@ EXSP EQU 1  ; 0 = 8-bit stack pointer in IDATA
 ; 100H. 
 ;
 ;   <o> STACKSIZE: Size of extended XRAM stack <0x0-0xFFFF>
-STACKSIZE   EQU 300H             ; set to 200H Bytes.
+STACKSIZE   EQU 200H             ; set to 200H Bytes.
 ;   <o> XSTACKSTART: End address of extended XRAM stack <0x0100-0xFFFF>
 ;       <i> Must be at least 0x100 larger than STACKSIZE value.
-XSTACKSTART EQU 7FFFH - STACKSIZE ; 7FFFH is top of off-chip XRAM.
+XSTACKSTART EQU 0x800 - STACKSIZE ; 800H is top of on-chip XRAM.
 ; </e>
 ;</h>
 ;-----------------------------------------------------------------------------
@@ -65,7 +65,7 @@ IDATALEN	EQU	80H	; the length of IDATA memory in bytes.
 XDATASTART	EQU	0H	; the absolute start-address of XDATA memory
 ; <o> XDATALEN: XDATA memory size <0x0-0xFFFF> 
 ;     <i> The length of XDATA memory in bytes.
-XDATALEN	EQU	7FFFH	; the length of XDATA memory in bytes.
+XDATALEN	EQU	0H	; the length of XDATA memory in bytes.
 ;
 ; <o> PDATASTART: PDATA memory start <0x0-0xFFFF> 
 ;     <i> The absolute start address of PDATA memory.
@@ -97,10 +97,10 @@ IBPSTACKTOP	EQU	0FFH+1	; set top of stack to highest location+1.
 ; <h>  Stack space for reentrant functions in the LARGE model.	
 ;  <q> XBPSTACK: Enable LARGE model reentrant stack
 ;     <i> Stack space for reentrant functions in the LARGE model.
-XBPSTACK	EQU	1	; set to 1 if large reentrant is used.
+XBPSTACK	EQU	0	; set to 1 if large reentrant is used.
 ;  <o> XBPSTACKTOP: End address of LARGE model stack <0x0-0xFFFF>
 ;     <i> Set the top of the stack to the highest location.
-XBPSTACKTOP	EQU	7FFFH+1; set top of stack to highest location+1.
+XBPSTACKTOP	EQU	0FFFFH+1; set top of stack to highest location+1.
 ; </h>
 ;
 ; <h>  Stack space for reentrant functions in the COMPACT model.	
