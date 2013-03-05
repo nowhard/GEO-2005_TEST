@@ -11,10 +11,12 @@ void I2C_Init(void)
 }
 //-------------------------------------------------------------
 #pragma OT(0,Speed) 
- PT_THREAD(I2C_RW(struct pt *pt, unsigned char p_DEV_ADDR,unsigned char *write_buf,unsigned char p_write_buf_len,unsigned char *read_buf,unsigned char p_read_buf_len,unsigned char *p_err))//поток  I2C
+ PT_THREAD(I2C_RW(struct pt *pt, unsigned char p_DEV_ADDR,unsigned char *p_write_buf,unsigned char p_write_buf_len,unsigned char *p_read_buf,unsigned char p_read_buf_len,unsigned char *p_err))//поток  I2C
  {  
    static unsigned char DEV_ADDR;
+   static unsigned char *write_buf;
    static unsigned char write_buf_len;
+   static unsigned char *read_buf;
    static unsigned char read_buf_len;
    static unsigned char *err;
 
@@ -23,7 +25,9 @@ void I2C_Init(void)
    PT_BEGIN(pt);
 //-----------------инициализация---------------
    DEV_ADDR=p_DEV_ADDR;
+   write_buf=p_write_buf;
    write_buf_len=p_write_buf_len;
+   read_buf=p_read_buf;
    read_buf_len=p_read_buf_len;
    err=p_err;
 //---------------------------------------------

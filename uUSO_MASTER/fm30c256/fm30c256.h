@@ -119,4 +119,7 @@ struct tTime
 
 PT_THREAD(FM_Read_Time(struct pt *pt,struct tTime *Time));//чтение времени с fm30c256
 PT_THREAD(FM_Write_Time(struct pt *pt,struct tTime *Time));//запись нового значения времени на fm30c256
+
+PT_THREAD(FM_Read_Mem(struct pt *pt,unsigned char *buf,unsigned char len,unsigned int addr));//чтение памяти с fm30c256
+PT_THREAD(FM_Write_Mem(struct pt *pt,unsigned char *buf,unsigned char len,unsigned int addr));//запись памяти в fm30c256
 #endif

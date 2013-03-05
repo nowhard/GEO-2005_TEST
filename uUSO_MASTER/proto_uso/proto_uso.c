@@ -116,7 +116,7 @@ void UART_ISR(void) interrupt 4 //using 1
 					RecieveBuf[0]=0x0;
 					RecieveBuf[1]=0xD7;
 					RecieveBuf[2]=0x29;
-					recieve_count=0x3;		 	
+					recieve_count=0x3;	 	
 				}
 				else
 				{
@@ -393,7 +393,7 @@ unsigned char Channel_Set_Reset_State_Flags(void) //using 0 //	Установка/Сброс ф
 
 unsigned char Channel_All_Get_Data(void) //using 0 //Выдать информацию по всем каналам узла (расширенный режим);
 {
-   unsigned char data index=0,i=0;
+   volatile unsigned char  index=0,i=0;
 
 
    TransferBuf[0]=0x00;TransferBuf[1]=0xD7;TransferBuf[2]=0x29;
@@ -550,28 +550,7 @@ channels[8].channel_data=log_port_in_1;
 					   }
 				  }
 				  break;
-				  
-				  case 4://дискретный
-				  {
-					  switch(channels[i].settings.set.modific)
-				      {	  
-							  
-							  case 0:
-							  {
-						  			TransferBuf[index+7]=log_port_in_1;//исправить
-									index++;
-							  }
-							  break;
-
-						/*	  case 1:
-							  {
-							  		TransferBuf[index+7]=0xF0;//исправить
-									index++;
-							  }
-							  break;  */
-					  }
-				  }	
-				  break;	 
+	 
 		  }
 	   }
 
@@ -776,9 +755,7 @@ void ProtoBufHandling(void) //using 0 //процесс обработки принятого запроса
 //------------------------------------------
     default:
 	{
-//       COMMAND_ERR=0x1;//несуществующая команда
 	   buf_len=Request_Error(FR_COMMAND_NOT_EXIST);
-//	   PROTO_STATE=PROTO_ERR_HANDLING;//на обработчик ошибки
     }								   
   }
 
@@ -791,7 +768,7 @@ void ProtoBufHandling(void) //using 0 //процесс обработки принятого запроса
 PT_THREAD(ProtoProcess(struct pt *pt))
  {
  //unsigned char i=0;
- unsigned char  CRC=0x0;
+ static unsigned char  CRC=0x0;
   PT_BEGIN(pt);
 
   while(1) 
@@ -813,7 +790,7 @@ PT_THREAD(ProtoProcess(struct pt *pt))
 	    CRC=RecieveBuf[recieve_count-1];
 				
 		if(CRC_Check(&RecieveBuf,(recieve_count-CRC_LEN))!=CRC)
-		{
+		{		
 			PT_RESTART(pt);//если CRC не сошлось-перезапустим протокол	 
 		}
 		PT_YIELD(pt);//дадим другим процессам время
@@ -835,7 +812,7 @@ PT_THREAD(ProtoProcess(struct pt *pt))
 			SBUF=TransferBuf[transf_count];//передача байта, остальным займется автомат
 			transf_count++;//инкрементируем счетчик переданных
 			
-			PT_DELAY(pt,200);			
+			PT_DELAY(pt,50);		
 		}
   //-----------------------------
   }

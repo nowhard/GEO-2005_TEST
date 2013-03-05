@@ -103,7 +103,7 @@ void ChannelsInit(void) //using 0//инициализация структуры каналов
 		channels[10].settings.set.modific=0;
 		channels[10].settings.set.state_byte_1=0x40;
 		channels[10].settings.set.state_byte_2=0x0A;
-		channels[10].channel_data=0x1;
+		channels[10].channel_data=0x0;
 		channels[10].calibrate.cal.calibrate=0;
 /*		// КАНАЛ 9 - Частотомер 0-256 Гц
 		channels[8].number=8;		 

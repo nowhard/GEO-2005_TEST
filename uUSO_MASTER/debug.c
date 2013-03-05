@@ -19,7 +19,7 @@
 
 
 extern struct pt pt_proto;
-volatile struct pt pt_i2c_read,pt_fm_read,pt_i2c_rw,pt_i2c_read_buf, pt_i2c_write_buf;
+volatile struct pt pt_i2c_read,pt_fm_read,pt_i2c_rw,pt_i2c_read_buf, pt_i2c_write_buf, pt_i2c_read_mem,pt_i2c_write_mem;
 
 // extern struct Channel xdata channels[CHANNEL_NUMBER];
 //-----------------------------------------
@@ -49,6 +49,8 @@ void main(void) //using 0
 
 	PT_INIT(&pt_i2c_read);
 	PT_INIT(&pt_fm_read);
+	PT_INIT(&pt_i2c_read_mem);
+	PT_INIT(&pt_i2c_write_mem);
 
 	EA=1;
 
@@ -66,14 +68,22 @@ void main(void) //using 0
  PT_THREAD(I2C_RepeatRead(struct pt *pt))//поток чтения I2C
  {  
 	  struct tTime Time;
+	  static unsigned char buf[16]={0x1,0x2,0x3,0x4};
+	  static unsigned char buf2[16]={0x0,0x0,0x0,0x0};
 	  PT_BEGIN(pt);	
 	  while(1) 
 	  {
 			PT_DELAY(pt,20);
 	
-			PT_SPAWN(pt, &pt_fm_read, FM_Read_Time(&pt_fm_read,&Time));	//читаем время в структуру
-			channels[9].channel_data=Time.Second;
-			channels[10].channel_data=Time.Minute;
+		//	PT_SPAWN(pt, &pt_fm_read, FM_Read_Time(&pt_fm_read,&Time));	//читаем время в структуру
+			PT_SPAWN(pt, &pt_i2c_write_mem, FM_Write_Mem(&pt_i2c_write_mem,&buf,4,0x0));
+			PT_DELAY(pt,20);
+			PT_SPAWN(pt, &pt_i2c_read_mem, FM_Read_Mem(&pt_i2c_read_mem,&buf2,4,0x3));
+//			channels[9].channel_data=Time.Second;
+//			channels[10].channel_data=Time.Minute;
+
+			channels[9].channel_data=buf2[0];
+			channels[10].channel_data=buf2[1];
 		//	WDT_Clear();
 	  }
 	  PT_END(pt);
@@ -91,5 +101,7 @@ void Timer1_Interrupt(void) interrupt 3  //таймер шедулера
 	pt_proto.pt_time++;
 	pt_i2c_read_buf.pt_time++;
 	pt_i2c_write_buf.pt_time++;
+	pt_i2c_read_mem.pt_time++;
+	pt_i2c_write_mem.pt_time++;
 	return;	
 }
