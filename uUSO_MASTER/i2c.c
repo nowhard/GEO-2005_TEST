@@ -176,7 +176,7 @@ void I2C_Init(void)
 			MDE=0;//прием
 	  }
 	  MDE=1;
-	  err=0;
+	  err[0]=0;
 	  PT_END(pt);
 }
 //-------------------------------------------------------------
@@ -185,6 +185,9 @@ static PT_THREAD(I2C_Write_Buf(struct pt *pt,unsigned char *buf,unsigned char le
  {  
 	   static volatile unsigned char write_byte_counter,bit_counter,write_byte;
 	  PT_BEGIN(pt);
+
+//--------------------------------
+
 	  MDE=1;//передача 
 	  write_byte_counter=0;
 	  while(write_byte_counter<len)  //цикл передачи буфера
@@ -211,14 +214,15 @@ static PT_THREAD(I2C_Write_Buf(struct pt *pt,unsigned char *buf,unsigned char le
 			MCO=1;
 			PT_YIELD(pt);//дадим другим процессам время
 			MCO=0;	
-			MDE=1;//передача
+			
 			if(MDI) //NACK
 			{
-				err=1;//случилась ошибка	
+				err[0]=1;//случилась ошибка	
 				PT_EXIT(pt);
 			}
+			MDE=1;//передача
 	  }
-	  err=0;
+	  err[0]=0;
 	  PT_END(pt);
 }
 //-------------------------------------------------------------

@@ -26,26 +26,51 @@ PT_THREAD(FM_Read_Time(struct pt *pt,struct tTime *Time))//чтение времени с fm30
 	 PT_INIT(&pt_i2c_rw);
 
 	 i2c_buf[0]=0;//читаем регистр 0
+	 ERROR_I2C=0;
 	 PT_SPAWN(pt, &pt_i2c_rw, I2C_RW(&pt_i2c_rw, SLAVEID_RTC,&i2c_buf,1,&ControlData,1,&ERROR_I2C));//считаем первый регистр
 	 
+	 if(ERROR_I2C)
+	 {
+	 	I2C_THREAD=I2C_IDLE;//освободим доступ к шине
+		PT_EXIT(pt);
+	 }
+	
 	 PT_YIELD(pt);
 	 ControlData |= RTC_R;	
 	 
 	 i2c_buf[0]=0;
 	 i2c_buf[1]=ControlData;
-
+	 ERROR_I2C=0;
 	 PT_SPAWN(pt, &pt_i2c_rw, I2C_RW(&pt_i2c_rw, SLAVEID_RTC,&i2c_buf,2,0,0,&ERROR_I2C));//запишем бит чтения
+	 
+	 if(ERROR_I2C)
+	 {
+	 	I2C_THREAD=I2C_IDLE;//освободим доступ к шине
+		PT_EXIT(pt);
+	 }
 	 PT_YIELD(pt);
 	
 	 i2c_buf[0]=0;//читаем с регистра 0
+	 ERROR_I2C=0;
 	 PT_SPAWN(pt, &pt_i2c_rw, I2C_RW(&pt_i2c_rw, SLAVEID_RTC,&i2c_buf,1,Time,9,&ERROR_I2C));//читаем регистры часов
-
+	 
+	 if(ERROR_I2C)
+	 {
+	 	I2C_THREAD=I2C_IDLE;//освободим доступ к шине
+		PT_EXIT(pt);
+	 }
 	 ControlData &= (~RTC_R);	
 
 	 i2c_buf[0]=0;
 	 i2c_buf[1]=ControlData;
+	 ERROR_I2C=0;
 	 PT_SPAWN(pt, &pt_i2c_rw, I2C_RW(&pt_i2c_rw, SLAVEID_RTC,&i2c_buf,2,0,0,&ERROR_I2C));//снимем бит чтения
 	 
+	 if(ERROR_I2C)
+	 {
+	 	I2C_THREAD=I2C_IDLE;//освободим доступ к шине
+		PT_EXIT(pt);
+	 }	 
 	 I2C_THREAD=I2C_IDLE;//освободим доступ к шине
   PT_END(pt);	
 }
@@ -63,30 +88,63 @@ PT_THREAD(FM_Write_Time(struct pt *pt,struct tTime *Time))//запись нового значен
 	 PT_INIT(&pt_i2c_rw);
 
  	 i2c_buf[0]=0;//читаем регистр 0
+	 ERROR_I2C=0;
 	 PT_SPAWN(pt, &pt_i2c_rw, I2C_RW(&pt_i2c_rw, SLAVEID_RTC,&i2c_buf[0],1,&ControlData,1,&ERROR_I2C));//считаем первый регистр	 
+	 
+	 if(ERROR_I2C)
+	 {
+	 	I2C_THREAD=I2C_IDLE;//освободим доступ к шине
+		PT_EXIT(pt);
+	 }
 	 PT_YIELD(pt);	
 	 ControlData |= RTC_W;
 
 	 i2c_buf[0]=0;//пишем регистр 0
 	 i2c_buf[1]=ControlData;
-
+	  ERROR_I2C=0;
 	 PT_SPAWN(pt, &pt_i2c_rw, I2C_RW(&pt_i2c_rw, SLAVEID_RTC,&i2c_buf[0],2,0,0,&ERROR_I2C));//запишем бит записи
+	 
+	 if(ERROR_I2C)
+	 {
+	 	I2C_THREAD=I2C_IDLE;//освободим доступ к шине
+		PT_EXIT(pt);
+	 }	
 	 PT_YIELD(pt);
 
 //
 	 i2c_buf[0]=1;//пишем c регистра 1
-	 memcpy(&i2c_buf[1],&Time->Calibr,8);	 
+	 memcpy(&i2c_buf[1],&Time->Calibr,8);
+	 ERROR_I2C=0;	 
 	 PT_SPAWN(pt, &pt_i2c_rw, I2C_RW(&pt_i2c_rw, SLAVEID_RTC,&i2c_buf[0],9,0,0,&ERROR_I2C));//запишем регистры времени и регистр калибровки
 
+	 if(ERROR_I2C)
+	 {
+	 	I2C_THREAD=I2C_IDLE;//освободим доступ к шине
+		PT_EXIT(pt);
+	 }
 	 ControlData &= (~RTC_W);
 	 
 	 i2c_buf[0]=0;//пишем регистр 0
 	 i2c_buf[1]=ControlData;
+	 ERROR_I2C=0;
 	 PT_SPAWN(pt, &pt_i2c_rw, I2C_RW(&pt_i2c_rw, SLAVEID_RTC,&i2c_buf[0],2,0,0,&ERROR_I2C));//снимем бит записи
+
+	 if(ERROR_I2C)
+	 {
+	 	I2C_THREAD=I2C_IDLE;//освободим доступ к шине
+		PT_EXIT(pt);
+	 }
 
   	 i2c_buf[0]=0;//пишем регистр 0
 	 i2c_buf[1]=Time->Flags;
+	 ERROR_I2C=0;
 	 PT_SPAWN(pt, &pt_i2c_rw, I2C_RW(&pt_i2c_rw, SLAVEID_RTC,&i2c_buf[0],2,0,0,&ERROR_I2C));//запишем регистр флагов
+
+	 if(ERROR_I2C)
+	 {
+	 	I2C_THREAD=I2C_IDLE;//освободим доступ к шине
+		PT_EXIT(pt);
+	 }
 	 I2C_THREAD=I2C_IDLE;//освободим доступ к шине
   PT_END(pt);
 
@@ -102,13 +160,19 @@ PT_THREAD(FM_Read_Mem(struct pt *pt,unsigned char *buf,unsigned char len,unsigne
      I2C_THREAD=FM_READ_BUFFER;
 
 	 PT_INIT(&pt_i2c_rw);
-	 len&=0x7FFF;	 
+	 len&=(NVRAM_SIZE-1);	 
 	
 	 i2c_buf[0]=(unsigned char)((addr>>8)&0xFF);
 	 i2c_buf[1]=(unsigned char)((addr)&0xFF);
 
+	 ERROR_I2C=0;
 	 PT_SPAWN(pt, &pt_i2c_rw, I2C_RW(&pt_i2c_rw, SLAVEID_NVRAM,&i2c_buf,2,buf,len,&ERROR_I2C));//снимем бит чтения
-	 
+
+	 if(ERROR_I2C)
+	 {
+	 	I2C_THREAD=I2C_IDLE;//освободим доступ к шине
+		PT_EXIT(pt);
+	 }	 
 	 I2C_THREAD=I2C_IDLE;//освободим доступ к шине
   PT_END(pt);
 }
@@ -124,15 +188,20 @@ PT_THREAD(FM_Write_Mem(struct pt *pt,unsigned char *buf,unsigned char len,unsign
  	 I2C_THREAD=FM_WRITE_BUFFER;
 	
 	 PT_INIT(&pt_i2c_rw);
-	 len&=0x7FFF;	 
+	 len&=(NVRAM_SIZE-1);	 
 	
 	 i2c_buf[0]=(unsigned char)((addr>>8)&0xFF);
 	 i2c_buf[1]=(unsigned char)((addr)&0xFF);
 
 	 memcpy(&i2c_buf[2],buf,len);
-
+	 ERROR_I2C=0;
  	 PT_SPAWN(pt, &pt_i2c_rw, I2C_RW(&pt_i2c_rw, SLAVEID_NVRAM,&i2c_buf,len+2,0,0,&ERROR_I2C));//снимем бит чтения
-	 
+
+	 if(ERROR_I2C)
+	 {
+	 	I2C_THREAD=I2C_IDLE;//освободим доступ к шине
+		PT_EXIT(pt);
+	 }	 
 	 I2C_THREAD=I2C_IDLE;//освободим доступ к шине
   PT_END(pt);
 }

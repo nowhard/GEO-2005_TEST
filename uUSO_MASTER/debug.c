@@ -12,9 +12,6 @@
 #include "fm30c256\fm30c256.h"
 
 #include "i2c.h"
-
-
-#include "calibrate/calibrate.h"
 #include "pt/pt.h"
 
 
@@ -45,7 +42,6 @@ void main(void) //using 0
 	I2C_Init();
 
 
-//	RestoreCalibrate();
 
 	PT_INIT(&pt_i2c_read);
 	PT_INIT(&pt_fm_read);
@@ -61,36 +57,36 @@ void main(void) //using 0
 	}
 }
 //-----------------------------------------------------------------------------
-#pragma OT(0,Speed)
- //---------------------------------
- PT_THREAD(I2C_RepeatRead(struct pt *pt))//поток чтения I2C
- {  
-	  static struct tTime Time={0x4,0x0,0,0,0,1,1,1,0};
-	  static struct tTime Time2;
-	  static unsigned char buf[16]={0x8,0x7,0x6,0x5};
-	  static unsigned char buf2[16]={0x0,0x0,0x0,0x0};
-	  PT_BEGIN(pt);	
-
-	  PT_SPAWN(pt, &pt_fm_read, FM_Write_Time(&pt_fm_read,&Time));
-	  while(1) 
-	  {
-			
-			PT_DELAY(pt,50);
-			// PT_SPAWN(pt, &pt_fm_read, FM_Write_Time(&pt_fm_read,&Time));
-			PT_SPAWN(pt, &pt_fm_read, FM_Read_Time(&pt_fm_read,&Time2));	//читаем время в структуру
-			//PT_SPAWN(pt, &pt_i2c_write_mem, FM_Write_Mem(&pt_i2c_write_mem,&buf,4,0x0));
-		//	PT_DELAY(pt,20);
-		///	PT_SPAWN(pt, &pt_i2c_read_mem, FM_Read_Mem(&pt_i2c_read_mem,&buf2,4,0x0));
-			channels[9].channel_data=Time2.Minute;//Time2.Second;
-			channels[10].channel_data=Time2.Second;
-
-		//	channels[9].channel_data=buf2[0];
-		//	channels[10].channel_data=buf2[1];
-		//	WDT_Clear();
-	  }
-	  PT_END(pt);
-
- }
+//#pragma OT(0,Speed)
+// //---------------------------------
+// PT_THREAD(I2C_RepeatRead(struct pt *pt))//поток чтения I2C
+// {  
+//	  static struct tTime Time={0x4,0x0,0,0,0,1,1,1,0};
+//	  static struct tTime Time2;
+//	  static unsigned char buf[16]={0x8,0x7,0x6,0x5};
+//	  static unsigned char buf2[16]={0x0,0x0,0x0,0x0};
+//	  PT_BEGIN(pt);	
+//
+//	  PT_SPAWN(pt, &pt_fm_read, FM_Write_Time(&pt_fm_read,&Time));
+//	  while(1) 
+//	  {
+//			
+//			PT_DELAY(pt,50);
+//			// PT_SPAWN(pt, &pt_fm_read, FM_Write_Time(&pt_fm_read,&Time));
+//			PT_SPAWN(pt, &pt_fm_read, FM_Read_Time(&pt_fm_read,&Time2));	//читаем время в структуру
+//			//PT_SPAWN(pt, &pt_i2c_write_mem, FM_Write_Mem(&pt_i2c_write_mem,&buf,4,0x0));
+//		//	PT_DELAY(pt,20);
+//		///	PT_SPAWN(pt, &pt_i2c_read_mem, FM_Read_Mem(&pt_i2c_read_mem,&buf2,4,0x0));
+//			channels[9].channel_data=Time2.Minute;//Time2.Second;
+//			channels[10].channel_data=Time2.Second;
+//
+//		//	channels[9].channel_data=buf2[0];
+//		//	channels[10].channel_data=buf2[1];
+//		//	WDT_Clear();
+//	  }
+//	  PT_END(pt);
+//
+// }
 //-----------------------------------
 void Timer1_Interrupt(void) interrupt 3  //таймер шедулера
 {

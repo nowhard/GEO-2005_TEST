@@ -219,7 +219,8 @@ void Protocol_Init(void) //using 0
 	STATE_BYTE=0xC0;
 	PT_INIT(&pt_proto);
 
-	log_port_out_1=0xFF;//debug
+	log_port_out_1=channels[9].channel_data=0xFF;
+    log_port_out_2=channels[10].channel_data=0xFF;
 	return;
 }
 //-----------------------------------------------------------------------------
@@ -530,6 +531,7 @@ PT_THREAD(Timer_Set_Time(struct pt *pt, unsigned char *buffer_len))//Установить 
 {
   static struct tTime *Time;
   static struct pt pt_time_write;
+  static unsigned char err;
   PT_BEGIN(pt);
 
   if(RecieveBuf[5]!=(sizeof(struct tTime)+1))//длина структуры не совпадает
@@ -583,8 +585,17 @@ PT_THREAD(Timer_Set_Time(struct pt *pt, unsigned char *buffer_len))//Установить 
   }
 
    PT_INIT(&pt_time_write);
-   PT_SPAWN(pt, &pt_time_write, FM_Write_Time(&pt_time_write,(struct tTime*)&RecieveBuf[6]));
-   *buffer_len=0;
+   PT_SPAWN(pt, &pt_time_write, err=FM_Write_Time(&pt_time_write,(struct tTime*)&RecieveBuf[6]));
+   
+   	if(err==PT_EXITED)
+	{
+		*buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
+	  	PT_EXIT(pt);
+	}
+	else
+	{
+   		*buffer_len=Request_Error(FR_SUCCESFUL);;
+	}
 
   PT_END(pt);
 }
@@ -593,6 +604,7 @@ PT_THREAD(Timer_Get_Time(struct pt *pt, unsigned char *buffer_len))//Считать пар
 {
  // static struct tTime *Time;
   static struct pt pt_time_read;
+  static unsigned char err;
   
   PT_BEGIN(pt);
 
@@ -604,10 +616,20 @@ PT_THREAD(Timer_Get_Time(struct pt *pt, unsigned char *buffer_len))//Считать пар
   // Time=(struct tTime*)&TransferBuf[6];
    
    PT_INIT(&pt_time_read);
-   PT_SPAWN(pt, &pt_time_read, FM_Read_Time(&pt_time_read,&TransferBuf[6]));	//читаем время в структуру	
+   PT_SPAWN(pt, &pt_time_read, err=FM_Read_Time(&pt_time_read,&TransferBuf[6]));	//читаем время в структуру	
+
+   	if(err==PT_EXITED)
+	{
+		*buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
+	  	PT_EXIT(pt);
+	}
+	else
+	{
+   		TransferBuf[(sizeof(struct tTime)+6)]=CRC_Check(&TransferBuf[1],sizeof(struct tTime)+5); // подсчет кс
+   		buffer_len[0]=(sizeof(struct tTime)+7);		
+	}
    
-   TransferBuf[(sizeof(struct tTime)+6)]=CRC_Check(&TransferBuf[1],sizeof(struct tTime)+5); // подсчет кс
-   buffer_len[0]=(sizeof(struct tTime)+7);
+
   PT_END(pt);
 }
 //-----------------------------------------------------------------------------
@@ -617,6 +639,7 @@ PT_THREAD(Memory_Write_Buf(struct pt *pt, unsigned char *buffer_len))//Записать 
   static unsigned int buf_addr;
   static unsigned char buf_mem_len=0;
   static struct pt pt_write_mem;
+  static unsigned char err;
   PT_BEGIN(pt);
 
 	buf_addr=((unsigned int)RecieveBuf[6]<<8)|RecieveBuf[7];
@@ -629,8 +652,17 @@ PT_THREAD(Memory_Write_Buf(struct pt *pt, unsigned char *buffer_len))//Записать 
 	}   
 
     PT_INIT(&pt_write_mem);
-  	PT_SPAWN(pt, &pt_write_mem, FM_Write_Mem(&pt_write_mem,&RecieveBuf[9],buf_mem_len,buf_addr));
-	buffer_len[0]=0;
+	PT_SPAWN(pt, &pt_write_mem, err=FM_Write_Mem(&pt_write_mem,&RecieveBuf[9],buf_mem_len,buf_addr));
+
+  	if(err==PT_EXITED)
+	{
+		*buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
+	  	PT_EXIT(pt);
+	}
+	else
+	{
+		buffer_len[0]=Request_Error(FR_SUCCESFUL);
+  	}
   PT_END(pt);
 }
 //-----------------------------------------------------------------------------
@@ -639,6 +671,7 @@ PT_THREAD(Memory_Read_Buf(struct pt *pt, unsigned char *buffer_len))//Считать бу
   static unsigned int buf_addr;
   static unsigned char buf_mem_len=0;
   static struct pt pt_read_mem;
+  static unsigned char err;
   PT_BEGIN(pt);
 
   	buf_addr=((unsigned int)RecieveBuf[6]<<8)|RecieveBuf[7];
@@ -651,17 +684,26 @@ PT_THREAD(Memory_Read_Buf(struct pt *pt, unsigned char *buffer_len))//Считать бу
 	} 
 
 	PT_INIT(&pt_read_mem);
-	PT_SPAWN(pt, &pt_read_mem, FM_Read_Mem(&pt_read_mem,&TransferBuf[7],buf_mem_len,buf_addr));
+	PT_SPAWN(pt, &pt_read_mem, err=FM_Read_Mem(&pt_read_mem,&TransferBuf[7],buf_mem_len,buf_addr));
      
-	 TransferBuf[0]=0x00;TransferBuf[1]=0xD7;TransferBuf[2]=0x29;
-   	 TransferBuf[3]=ADRESS_DEV;  // адрес узла
-   	 TransferBuf[4]=MEMORY_READ_BUF_RESP;
-	 TransferBuf[5]=buf_mem_len+2;//длина оставшейся части
-	 TransferBuf[6]=buf_mem_len;//длина буфера
-
-
-    TransferBuf[buf_mem_len+7]=CRC_Check(&TransferBuf[1],buf_mem_len+6); // подсчет кс
-    buffer_len[0]=buf_mem_len+8;
+	
+	if(err==PT_EXITED)
+	{
+		*buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
+	  	PT_EXIT(pt);		
+	}
+	else
+	{
+		 TransferBuf[0]=0x00;TransferBuf[1]=0xD7;TransferBuf[2]=0x29;
+	   	 TransferBuf[3]=ADRESS_DEV;  // адрес узла
+	   	 TransferBuf[4]=MEMORY_READ_BUF_RESP;
+		 TransferBuf[5]=buf_mem_len+2;//длина оставшейся части
+		 TransferBuf[6]=buf_mem_len;//длина буфера
+	
+	
+	     TransferBuf[buf_mem_len+7]=CRC_Check(&TransferBuf[1],buf_mem_len+6); // подсчет кс
+	     buffer_len[0]=buf_mem_len+8;
+	}
   PT_END(pt);
 }
 //-----------------------------------------------------------------------------
