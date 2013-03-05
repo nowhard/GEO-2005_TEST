@@ -10,7 +10,6 @@
 "timer1.obj",
 "timer2.obj",
 "i2c.obj",
-"calibrate.obj",
 "fm30c256.obj" 
 TO "debug" 
 RAMSIZE(256) 

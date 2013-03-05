@@ -91,17 +91,17 @@
 
 #define DEVICE_ADDR_EEPROM	0x2A
 
-#define DEVICE_NAME_EEPROM		0x2B
-#define DEVICE_NAME_LENGTH		0x5//длина имени в блоках
-#define DEVICE_NAME_LENGTH_SYM	20//длина имени в байтах
-
-#define DEVICE_VER_EEPROM	0x30
-#define DEVICE_VER_LENGTH	0x2//длина версии по в блоках-блок-4байта
-#define DEVICE_VER_LENGTH_SYM 0x8
-
-#define DEVICE_DESC_EEPROM	0x33
-#define DEVICE_DESC_MAX_LENGTH	10//максимальная длина строки описания-5 блоков	по 4 байта
-#define DEVICE_DESC_MAX_LENGTH_SYM 40
+//#define DEVICE_NAME_EEPROM		0x2B
+//#define DEVICE_NAME_LENGTH		0x5//длина имени в блоках
+//#define DEVICE_NAME_LENGTH_SYM	20//длина имени в байтах
+//
+//#define DEVICE_VER_EEPROM	0x30
+//#define DEVICE_VER_LENGTH	0x2//длина версии по в блоках-блок-4байта
+//#define DEVICE_VER_LENGTH_SYM 0x8
+//
+//#define DEVICE_DESC_EEPROM	0x33
+//#define DEVICE_DESC_MAX_LENGTH	10//максимальная длина строки описания-5 блоков	по 4 байта
+//#define DEVICE_DESC_MAX_LENGTH_SYM 40
 
 #define DEVICE_DESC_LEN_EEPROM	0x32//адрес значения длины строки описания в ППЗУ
 

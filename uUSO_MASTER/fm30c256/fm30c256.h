@@ -87,6 +87,8 @@
 
 struct tTime
 {
+   	unsigned char Flags; 			// Регистр флагов
+    unsigned char Calibr;			// Регистр калибровки
     unsigned char Second;			// Секунда
 	unsigned char Minute;			// Минута
 	unsigned char Hour;				// Час
