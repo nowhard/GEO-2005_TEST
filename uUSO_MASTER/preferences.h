@@ -3,8 +3,8 @@
 
 //#pragma NOAREGS
 
-//#define F_OSC_12  12582912UL//частота ядра-12MHz
-#define F_OSC_6 6291456
+#define F_OSC_12  12582912UL//частота ядра-12MHz
+//#define F_OSC_6 6291456
 
 
 //#define BAUDRATE_9600

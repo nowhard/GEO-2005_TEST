@@ -36,7 +36,7 @@
 									 0x74, 0xC8, 0x75, 0xC9, 0x76, 0xCA, 0x77, 0xCB, 
 									 0x78, 0xC4, 0x79, 0xC5, 0x7A, 0xC6, 0x7B, 0xC7, 
 									 0x7C, 0xC0, 0x7D, 0xC1, 0x7E, 0xC2, 0x7F, 0xC3};
-sbit DE_RE=P3^5;
+//sbit DE_RE=P3^5;
 
 //-----------------------------------------------------------------------------------
 unsigned char xdata DEV_NAME[/*DEVICE_NAME_LENGTH_SYM*/] ="<<GEO-2005 TEST>>"; //имя устройства
@@ -49,14 +49,17 @@ volatile unsigned char xdata ADRESS_DEV=0x1;
 //--------------------------------global variable------------------------------------
 
 volatile unsigned char xdata	RECIEVED=0;//принято
+#define							FRAME_RECIEVED	0xF
+
 volatile unsigned char xdata    recieve_count;//счетчик приемного буфера
 volatile unsigned char xdata	transf_count;//счетчик передаваемых байтов	   
 volatile unsigned char xdata	buf_len;//длина передаваемого буфера
 
-volatile unsigned char xdata    CUT_OUT_NULL;//флаг-вырезаем 0 после 0xD7
+volatile unsigned char          CUT_OUT_NULL=0;//флаг-вырезаем 0 после 0xD7
 volatile unsigned char xdata    frame_len=0;//длина кадра, которую вытаскиваем из шестого байта кадра
 //--------------------------------------------------------------------
 volatile unsigned char xdata    RecieveBuf[MAX_LENGTH_REC_BUF]={0} ; //буфер принимаемых данных
+//volatile unsigned char xdata 	Transfer[MAX_LENGTH_REC_BUF]={0};
 volatile unsigned char xdata 	*TransferBuf;
 //--------------------------------------------------------------------
 volatile unsigned char xdata    STATE_BYTE=0xC0;//байт состояния устройства
@@ -64,12 +67,7 @@ volatile unsigned char xdata    symbol=0xFF;//принятый символ
 
 volatile struct pt pt_proto;
 //-----------------------------------------------------------------------------------
-//union //объединение для конвертирования char->long
-//{
-//	float result_float;
-//	unsigned char result_char[4];
-//}
-//sym_8_to_float;
+
 
 //----------------------------------------------------------------------------------
 volatile unsigned char xdata log_port_in_1  _at_ 0x8001;
@@ -88,6 +86,7 @@ void UART_ISR(void) interrupt 4 //using 1
 		if(recieve_count>MAX_LENGTH_REC_BUF)	//если посылка слишком длинная
 		{
 			PT_RESTART_OUT(pt_proto);  //внепроцессный рестарт
+			recieve_count=0;
 			return;
 		} 
 
@@ -148,7 +147,7 @@ void UART_ISR(void) interrupt 4 //using 1
 	   {
 	   		  if(recieve_count==6+frame_len)	  // принимаем указанное в frame_len число байт данные, 6 значит что обмен идет с компом, надо ставаить 5 чтобы обмениваться с устройствами
    			  {
-					RECIEVED=1;//буфер принят
+					RECIEVED=FRAME_RECIEVED;//буфер принят
 			  		ES=0;
 			  		REN=0;  //recieve disable -запрещаем принимать в буфер	
 				   	CUT_OUT_NULL=0;  			  			
@@ -165,14 +164,14 @@ void UART_ISR(void) interrupt 4 //using 1
 //----------------------------передача----------------------------------------------------------------
 	if(TI)
 	{
-		TI=0;
-		 
+		TI=0; 
 		if(transf_count<buf_len)
 		{
 			if(transf_count<3)//передаем заголовок
 			{
 				SBUF=TransferBuf[transf_count];			
 				transf_count++;
+				CUT_OUT_NULL=0;
 			}
 			else   //тело...   подставляем 0 после 0xD7
 			{
@@ -214,19 +213,20 @@ void Protocol_Init(void) //using 0
 	recieve_count=0x0;//счетчик буфера приема
 	transf_count=0x0;//счетчик передаваемых байтов
 	buf_len=0x0;//длина передаваемого буфера
-	DE_RE=0;//линия на прием
+//	DE_RE=0;//линия на прием
 	CUT_OUT_NULL=0;
 	STATE_BYTE=0xC0;
 	PT_INIT(&pt_proto);
 
-	log_port_out_1=channels[9].channel_data=0xFF;
-    log_port_out_2=channels[10].channel_data=0xFF;
+	//log_port_out_1=channels[9].channel_data=0xFF;
+    //log_port_out_2=channels[10].channel_data=0xFF;
+	channels[9].channel_data=0x0;
 	return;
 }
 //-----------------------------------------------------------------------------
 unsigned char Send_Info(void) //using 0    //посылка информации об устройстве
 {
-	    unsigned char   idata i=0;
+	 volatile   unsigned char    i=0;
 	   									
 	   //заголовок кадра---
 	   TransferBuf[0]=0x00;
@@ -277,7 +277,7 @@ unsigned char Send_Info(void) //using 0    //посылка информации об устройстве
 //-----------------------------------------------------------------------------
 unsigned char  Channel_Set_Parameters(void) //using 0 //Установить параметры по каналам, согласно абсолютной нумерации;
 {
-       unsigned char xdata index=0, store_data=0;//i=0;
+    volatile   unsigned char xdata index=0, store_data=0;//i=0;
 	 
 	   while(index<RecieveBuf[5]-1)				   // данные по каналам
 	      {
@@ -347,7 +347,7 @@ unsigned char Channel_All_Get_Data(void) //using 0 //Выдать информацию по всем к
    TransferBuf[4]=CHANNEL_ALL_GET_DATA_RESP;  // код операции
    TransferBuf[6]=STATE_BYTE;
 //---------debug--
-channels[8].channel_data=log_port_in_1;
+	channels[8].channel_data=log_port_in_1;
 //----------------
     for(i=0;i<CHANNEL_NUMBER;i++)				   // данные по каналам
     {
@@ -363,27 +363,11 @@ channels[8].channel_data=log_port_in_1;
 	                 {
 						  case 0:
 						  {
-						  		if(channels[i].calibrate.cal.calibrate==1)//калиброванный
-								{			 			 
-								//	 if(channels[i].settings.set.modific==0x00 || channels[i].settings.set.modific==0x01)
-								//	 {
-									 	TransferBuf[index+7]=((channels[i].channel_data_calibrate)&0x0000FF00)>>8;
-									  	index++;
-			    					  	TransferBuf[index+7]=((channels[i].channel_data_calibrate)&0x00FF0000)>>16;
-									  	index++;
-								//	 } 
-								}
-								else
-								{
-									// if(channels[i].settings.set.modific==0x00 || channels[i].settings.set.modific==0x01)		   // если модифи-я 2 и 3 т.е. 24-разрядные значения то 3 байта на значение 
-								//	 {
-										TransferBuf[index+7]=((channels[i].channel_data)&0x0000FF00)>>8;
-									  	index++;
-			    					  	TransferBuf[index+7]=((channels[i].channel_data)&0x00FF0000)>>16;
-									  	index++;
-									// }	
-								} 
 
+								  TransferBuf[index+7]=((channels[i].channel_data)&0x0000FF00)>>8;
+							  	  index++;
+	    					  	  TransferBuf[index+7]=((channels[i].channel_data)&0x00FF0000)>>16;
+							  	  index++;
 								  
 								  TransferBuf[index+7]=channels[i].settings.set.state_byte_1;	 // первый байт состояния канала
 		                          index++;
@@ -392,44 +376,17 @@ channels[8].channel_data=log_port_in_1;
 						  }
 						  break; 
 
-						  case 1:
-						  {
-						  }
-						  break;
-
-			        	  case 2: 
-						  {
-						  }
-						  break;
 
 						  case 3:
 						  {
-						        if(channels[i].calibrate.cal.calibrate==1)//калиброванный
-								{			 
-						 			// if(channels[i].settings.set.modific==0x02 || channels[i].settings.set.modific==0x03)		   // если модифи-я 2 и 3 т.е. 24-разрядные значения то 3 байта на значение 
-								//	 {									  
-									  	TransferBuf[index+7]=((channels[i].channel_data_calibrate)&0x000000FF); // данные с АЦП
-							          	index++;
-									  	TransferBuf[index+7]=((channels[i].channel_data_calibrate)&0x0000FF00)>>8;
-									  	index++;
-			    					  	TransferBuf[index+7]=((channels[i].channel_data_calibrate)&0x00FF0000)>>16;
-									  	index++;
-		  						  	// }
-								}
-								else
-								{
-								//	 if(channels[i].settings.set.modific==0x02 || channels[i].settings.set.modific==0x03)		   // если модифи-я 2 и 3 т.е. 24-разрядные значения то 3 байта на значение 
-									// {									 
-									  	TransferBuf[index+7]=((channels[i].channel_data)&0x000000FF); // данные с АЦП
-							          	index++;
-									  	TransferBuf[index+7]=((channels[i].channel_data)&0x0000FF00)>>8;
-									  	index++;
-			    					  	TransferBuf[index+7]=((channels[i].channel_data)&0x00FF0000)>>16;
-									  	index++;
-								//	 }	
-								} 
-
-								  
+								 
+								  	TransferBuf[index+7]=((channels[i].channel_data)&0x000000FF); // данные с АЦП
+						          	index++;
+								  	TransferBuf[index+7]=((channels[i].channel_data)&0x0000FF00)>>8;
+								  	index++;
+		    					  	TransferBuf[index+7]=((channels[i].channel_data)&0x00FF0000)>>16;
+								  	index++;
+ 
 								  TransferBuf[index+7]=channels[i].settings.set.state_byte_1;	 // первый байт состояния канала
 		                          index++;
 		                          TransferBuf[index+7]=channels[i].settings.set.state_byte_2;	 // второй байт состояния канала
@@ -474,7 +431,7 @@ channels[8].channel_data=log_port_in_1;
 							  
 							  case 0:
 							  {
-							          TransferBuf[index+7]=((channels[i].channel_data)&0x000000FF); // данные с АЦП
+							          TransferBuf[index+7]=((channels[i].channel_data)&0x000000FF); // 
 							          index++;
 									  TransferBuf[index+7]=((channels[i].channel_data)&0x0000FF00)>>8;
 									  index++;
@@ -485,7 +442,7 @@ channels[8].channel_data=log_port_in_1;
 
 							  case 1:
 							  {
-							          TransferBuf[index+7]=((channels[i].channel_data)&0x000000FF); // данные с АЦП
+							          TransferBuf[index+7]=((channels[i].channel_data)&0x000000FF); // 
 							          index++;
 									  TransferBuf[index+7]=((channels[i].channel_data)&0x0000FF00)>>8;
 									  index++;
@@ -507,7 +464,7 @@ channels[8].channel_data=log_port_in_1;
 //-----------------------------------------------------------------------------
 unsigned char Channel_Set_Discret_Out(void)//установить дискретные выводы согласно посылке
 {
-       unsigned char xdata index=0;//i=0;
+      volatile unsigned char xdata index=0;//i=0;
 	 
 	   while(index<RecieveBuf[5]-1)				   // данные по каналам
 	      {
@@ -529,9 +486,9 @@ unsigned char Channel_Set_Discret_Out(void)//установить дискретные выводы соглас
 //-----------------------------------------------------------------------------
 PT_THREAD(Timer_Set_Time(struct pt *pt, unsigned char *buffer_len))//Установить параметры часов реального времени
 {
-  static struct tTime *Time;
-  static struct pt pt_time_write;
-  static unsigned char err;
+  static volatile struct tTime *Time;
+  static volatile struct pt pt_time_write;
+  static volatile unsigned char err;
   PT_BEGIN(pt);
 
   if(RecieveBuf[5]!=(sizeof(struct tTime)+1))//длина структуры не совпадает
@@ -603,8 +560,8 @@ PT_THREAD(Timer_Set_Time(struct pt *pt, unsigned char *buffer_len))//Установить 
 PT_THREAD(Timer_Get_Time(struct pt *pt, unsigned char *buffer_len))//Считать параметры часов реального времени
 {
  // static struct tTime *Time;
-  static struct pt pt_time_read;
-  static unsigned char err;
+  static volatile struct pt pt_time_read;
+  static volatile unsigned char err;
   
   PT_BEGIN(pt);
 
@@ -636,10 +593,10 @@ PT_THREAD(Timer_Get_Time(struct pt *pt, unsigned char *buffer_len))//Считать пар
 
 PT_THREAD(Memory_Write_Buf(struct pt *pt, unsigned char *buffer_len))//Записать буфер в памать I2C
 {
-  static unsigned int buf_addr;
-  static unsigned char buf_mem_len=0;
-  static struct pt pt_write_mem;
-  static unsigned char err;
+  static volatile unsigned int buf_addr;
+  static volatile unsigned char buf_mem_len=0;
+  static volatile struct pt pt_write_mem;
+  static volatile unsigned char err;
   PT_BEGIN(pt);
 
 	buf_addr=((unsigned int)RecieveBuf[6]<<8)|RecieveBuf[7];
@@ -668,18 +625,18 @@ PT_THREAD(Memory_Write_Buf(struct pt *pt, unsigned char *buffer_len))//Записать 
 //-----------------------------------------------------------------------------
 PT_THREAD(Memory_Read_Buf(struct pt *pt, unsigned char *buffer_len))//Считать буфер из памяти I2C
 {
-  static unsigned int buf_addr;
-  static unsigned char buf_mem_len=0;
-  static struct pt pt_read_mem;
-  static unsigned char err;
+  static volatile unsigned int buf_addr;
+  static volatile unsigned char buf_mem_len=0;
+  static volatile struct pt pt_read_mem;
+  static volatile unsigned char err;
   PT_BEGIN(pt);
 
-  	buf_addr=((unsigned int)RecieveBuf[6]<<8)|RecieveBuf[7];
+  	buf_addr=(((unsigned int)RecieveBuf[6])<<8)|(unsigned int)RecieveBuf[7];
 	buf_mem_len=RecieveBuf[8];
 	
-	if((buf_mem_len>255) || ((buf_addr+buf_mem_len)>=NVRAM_SIZE))	//адрес превышен
+	if((buf_mem_len>255) || ((buf_addr+buf_mem_len)>NVRAM_SIZE))	//адрес превышен
 	{
-  	  	*buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
+  	  	*buffer_len=Request_Error(FR_COMMAND_NOT_SUPPORT);
 	  	PT_EXIT(pt); 		
 	} 
 
@@ -740,10 +697,10 @@ PT_THREAD(ProtoProcess(struct pt *pt))
   //----------restart------------
 		recieve_count=0x0;//??
 		REN=1;//recieve enqble
-		DE_RE=0;//линия на прием
+		//DE_RE=0;//линия на прием
 		ES=1;
   //-----------------------------
-	   PT_WAIT_UNTIL(pt,RECIEVED); //ждем команды на старт
+	   PT_WAIT_UNTIL(pt,RECIEVED==FRAME_RECIEVED); //ждем команды на старт
 	   RECIEVED=0;
 		
 		if(RecieveBuf[3]!=ADRESS_DEV)//если адрес совпал	  
@@ -753,10 +710,12 @@ PT_THREAD(ProtoProcess(struct pt *pt))
 				
 	    CRC=RecieveBuf[recieve_count-1];
 				
-//		if(CRC_Check(&RecieveBuf,(recieve_count-CRC_LEN))!=CRC)
-//		{		
-//			PT_RESTART(pt);//если CRC не сошлось-перезапустим протокол	 
-//		}
+		if(CRC_Check(&RecieveBuf,(recieve_count-CRC_LEN))!=CRC)
+		{		
+			channels[9].channel_data++;
+			PT_RESTART(pt);//если CRC не сошлось-перезапустим протокол	 
+		}
+		
 		PT_YIELD(pt);//дадим другим процессам время
   //-----------------------------	
 
@@ -819,7 +778,7 @@ PT_THREAD(ProtoProcess(struct pt *pt))
 		}
 		else
 		{
-			DE_RE=1; //переключаем RS485 в режим передачи
+			//DE_RE=1; //переключаем RS485 в режим передачи
 							
 			REN=0;	//запрет приема-только передача
 			transf_count=0;
@@ -840,7 +799,7 @@ PT_THREAD(ProtoProcess(struct pt *pt))
 #pragma OT(6,Speed)
   unsigned char CRC_Check( unsigned char xdata *Spool_pr,unsigned char Count_pr ) 
  {
-     unsigned char crc = 0x0;
+     volatile  unsigned char crc = 0x0;
 
      while (Count_pr--)
          crc = Crc8Table[crc ^ *Spool_pr++];

@@ -1,4 +1,5 @@
 #include "adc.h"
+#include <intrins.h>
 //-------------------global variables-----------------------------------
 volatile struct ADC_Channels xdata adc_channels[ADC_CHANNELS_NUM];
 
@@ -26,7 +27,9 @@ void ADC_Initialize() //using 0
 
 	ADC0CON2&=0xF0;
 	ADC0CON2|=EXT_REF;//включим внешнюю опору
+	
 	EADC = 1;
+
 
 	ADCMODE |= 0x20; //0010 0000 //ENABLE
 
@@ -48,7 +51,7 @@ void ADC_ISR(void) interrupt 6 //using 1
 	channels[ADC0CON2&0x7].channel_data=adc_channels[ADC0CON2&0x7].ADC_BUF_UN[0].ADC_LONG;
 
 	adc_channels[ADC0CON2&0x7].adc_buf_counter=(adc_channels[ADC0CON2&0x7].adc_buf_counter+1)&(ADC_BUF_SIZE-1);	//инкрементируем указатель усредн€ющего буфера текущего канала
-	adc_channels[ADC0CON2&0x7].new_measuring=1;	 //новое измерение было
+//	adc_channels[ADC0CON2&0x7].new_measuring=1;	 //новое измерение было
 		
 	ADCMODE &= 0xDF; // 1101 1111
 	ADC0CON2=((ADC0CON2+1)&0x7)|(ADC0CON2&0xF0); //инкремент аналогового входа 	
