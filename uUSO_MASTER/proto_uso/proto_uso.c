@@ -169,13 +169,12 @@ void UART_ISR(void) interrupt 4 //using 1
 	{
 		//TI=0;
 		 
-		if(transf_count<buf_len)
+		if((transf_count<buf_len) || (CUT_OUT_NULL==0x1))
 		{
 			if(transf_count<3)//передаем заголовок
 			{
-				SBUF=TransferBuf[transf_count];			
-				transf_count++;
-//				CUT_OUT_NULL=0;
+				SBUF=TransferBuf[transf_count];	
+				transf_count++;		
 			}
 			else   //тело...   подставляем 0 после 0xD7
 			{
@@ -184,18 +183,17 @@ void UART_ISR(void) interrupt 4 //using 1
 						if(TransferBuf[transf_count]==(unsigned char)0xD7)//проверим, это  ,0xD7 или другое
 						{			
 							CUT_OUT_NULL=0x1;
-							buf_len++;//увеличиваем буфер на '0'	
+							//buf_len++;//увеличиваем буфер на '0'	
 						}
-						SBUF=TransferBuf[transf_count];			
-						transf_count++;
+						SBUF=TransferBuf[transf_count];	
+						transf_count++;		
 					}
 					else
 					{
 						SBUF=(unsigned char)0x0;
-						CUT_OUT_NULL=0;
-						transf_count++;		
-					}	
-			}	
+						CUT_OUT_NULL=0;							
+					}						
+			}				
 		}
 		else
 		{
