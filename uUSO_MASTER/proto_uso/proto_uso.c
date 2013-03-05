@@ -2,6 +2,7 @@
 #include "calibrate\calibrate.h"
 #include "i2c.h"
 #include <intrins.h>
+#include "fm30c256\fm30c256.h"
 //-----------------------------------------------------------------------------------
   unsigned char code Crc8Table[256]={0x00, 0xBC, 0x01, 0xBD, 0x02, 0xBE, 0x03, 0xBF, 
  									 0x04, 0xB8, 0x05, 0xB9, 0x06, 0xBA, 0x07, 0xBB, 
@@ -52,14 +53,14 @@ volatile unsigned char xdata    recieve_count;//счетчик приемного буфера
 volatile unsigned char xdata	transf_count;//счетчик передаваемых байтов	   
 volatile unsigned char xdata	buf_len;//длина передаваемого буфера
 
-volatile unsigned char xdata  CUT_OUT_NULL;//флаг-вырезаем 0 после 0xD7
-volatile unsigned char xdata frame_len=0;//длина кадра, которую вытаскиваем из шестого байта кадра
+volatile unsigned char xdata    CUT_OUT_NULL;//флаг-вырезаем 0 после 0xD7
+volatile unsigned char xdata    frame_len=0;//длина кадра, которую вытаскиваем из шестого байта кадра
 //--------------------------------------------------------------------
-volatile unsigned char xdata  RecieveBuf[MAX_LENGTH_REC_BUF]={0} ; //буфер принимаемых данных
-volatile unsigned char xdata 			*TransferBuf;
+volatile unsigned char xdata    RecieveBuf[MAX_LENGTH_REC_BUF]={0} ; //буфер принимаемых данных
+volatile unsigned char xdata 	*TransferBuf;
 //--------------------------------------------------------------------
-volatile unsigned char xdata  STATE_BYTE=0xC0;//байт состо€ни€ устройства
-volatile unsigned char xdata symbol=0xFF;//прин€тый символ
+volatile unsigned char xdata    STATE_BYTE=0xC0;//байт состо€ни€ устройства
+volatile unsigned char xdata    symbol=0xFF;//прин€тый символ
 
 volatile struct pt pt_proto;
 //-----------------------------------------------------------------------------------
@@ -527,25 +528,140 @@ unsigned char Channel_Set_Discret_Out(void)//установить дискретные выводы соглас
 //-----------------------------------------------------------------------------
 PT_THREAD(Timer_Set_Time(struct pt *pt, unsigned char *buffer_len))//”становить параметры часов реального времени
 {
+  static struct tTime *Time;
+  static struct pt pt_time_write;
   PT_BEGIN(pt);
+
+  if(RecieveBuf[5]!=(sizeof(struct tTime)+1))//длина структуры не совпадает
+  {
+  	  buffer_len[0]=Request_Error(FR_COMMAND_STRUCT_ERROR);
+	  PT_EXIT(pt);
+  }
+
+  Time=(struct tTime *)(&RecieveBuf[6]); //получим указатель на структуру
+
+  if((((Time->Second&0xF)+10*((Time->Second>>4)&0xF))>59) )  //проверка формата
+  {
+  	  *buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
+	  PT_EXIT(pt);  		
+  }
+
+  if((((Time->Minute&0xF)+10*((Time->Minute>>4)&0xF))>59))  //проверка формата
+  {
+  	  *buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
+	  PT_EXIT(pt);  		
+  }
+
+  if((((Time->Hour&0xF)+10*((Time->Hour>>4)&0xF))>23))  //проверка формата
+  {
+  	  *buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
+	  PT_EXIT(pt);  		
+  }
+
+  if(((Time->WeekDay&0xF)<1)  || ((Time->WeekDay&0xF)>7))  //проверка формата
+  {
+  	  *buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
+	  PT_EXIT(pt);  		
+  }
+
+  if((((Time->Day&0xF)+10*((Time->Day>>4)&0xF))<1)  || (((Time->Day&0xF)+10*((Time->Day>>4)&0xF))>31) )  //проверка формата
+  {
+  	  *buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
+	  PT_EXIT(pt);  		
+  }
+
+  if((((Time->Month&0xF)+10*((Time->Month>>4)&0xF))<1)  || (((Time->Month&0xF)+10*((Time->Month>>4)&0xF))>12) )  //проверка формата
+  {
+  	  *buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
+	  PT_EXIT(pt);  		
+  }
+
+  if((((Time->Year&0xF)+10*((Time->Year>>4)&0xF))>99) )  //проверка формата
+  {
+  	  *buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
+	  PT_EXIT(pt);  		
+  }
+
+   PT_INIT(&pt_time_write);
+   PT_SPAWN(pt, &pt_time_write, FM_Write_Time(&pt_time_write,(struct tTime*)&RecieveBuf[6]));
+   *buffer_len=0;
+
   PT_END(pt);
 }
 //-----------------------------------------------------------------------------
 PT_THREAD(Timer_Get_Time(struct pt *pt, unsigned char *buffer_len))//—читать параметры часов реального времени
 {
+ // static struct tTime *Time;
+  static struct pt pt_time_read;
+  
   PT_BEGIN(pt);
+
+   TransferBuf[0]=0x00;TransferBuf[1]=0xD7;TransferBuf[2]=0x29;
+   TransferBuf[3]=ADRESS_DEV;  // адрес узла
+   TransferBuf[4]=TIMER_GET_TIME_RESP;  // код операции 
+   TransferBuf[5]=(sizeof(struct tTime)+1);//длина оставшейс€ части кадра	
+   
+  // Time=(struct tTime*)&TransferBuf[6];
+   
+   PT_INIT(&pt_time_read);
+   PT_SPAWN(pt, &pt_time_read, FM_Read_Time(&pt_time_read,&TransferBuf[6]));	//читаем врем€ в структуру	
+   
+   TransferBuf[(sizeof(struct tTime)+6)]=CRC_Check(&TransferBuf[1],sizeof(struct tTime)+5); // подсчет кс
+   buffer_len[0]=(sizeof(struct tTime)+7);
   PT_END(pt);
 }
 //-----------------------------------------------------------------------------
+
 PT_THREAD(Memory_Write_Buf(struct pt *pt, unsigned char *buffer_len))//«аписать буфер в памать I2C
 {
+  static unsigned int buf_addr;
+  static unsigned char buf_mem_len=0;
+  static struct pt pt_write_mem;
   PT_BEGIN(pt);
+
+	buf_addr=((unsigned int)RecieveBuf[6]<<8)|RecieveBuf[7];
+	buf_mem_len=RecieveBuf[8];
+	
+	if((buf_mem_len>255) || ((buf_addr+buf_mem_len)>=NVRAM_SIZE))	//адрес превышен
+	{
+  	  	*buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
+	  	PT_EXIT(pt); 		
+	}   
+
+    PT_INIT(&pt_write_mem);
+  	PT_SPAWN(pt, &pt_write_mem, FM_Write_Mem(&pt_write_mem,&RecieveBuf[9],buf_mem_len,buf_addr));
+	buffer_len[0]=0;
   PT_END(pt);
 }
 //-----------------------------------------------------------------------------
 PT_THREAD(Memory_Read_Buf(struct pt *pt, unsigned char *buffer_len))//—читать буфер из пам€ти I2C
 {
+  static unsigned int buf_addr;
+  static unsigned char buf_mem_len=0;
+  static struct pt pt_read_mem;
   PT_BEGIN(pt);
+
+  	buf_addr=((unsigned int)RecieveBuf[6]<<8)|RecieveBuf[7];
+	buf_mem_len=RecieveBuf[8];
+	
+	if((buf_mem_len>255) || ((buf_addr+buf_mem_len)>=NVRAM_SIZE))	//адрес превышен
+	{
+  	  	*buffer_len=Request_Error(FR_COMMAND_STRUCT_ERROR);
+	  	PT_EXIT(pt); 		
+	} 
+
+	PT_INIT(&pt_read_mem);
+	PT_SPAWN(pt, &pt_read_mem, FM_Read_Mem(&pt_read_mem,&TransferBuf[7],buf_mem_len,buf_addr));
+     
+	 TransferBuf[0]=0x00;TransferBuf[1]=0xD7;TransferBuf[2]=0x29;
+   	 TransferBuf[3]=ADRESS_DEV;  // адрес узла
+   	 TransferBuf[4]=MEMORY_READ_BUF_RESP;
+	 TransferBuf[5]=buf_mem_len+2;//длина оставшейс€ части
+	 TransferBuf[6]=buf_mem_len;//длина буфера
+
+
+    TransferBuf[buf_mem_len+7]=CRC_Check(&TransferBuf[1],buf_mem_len+6); // подсчет кс
+    buffer_len[0]=buf_mem_len+8;
   PT_END(pt);
 }
 //-----------------------------------------------------------------------------
@@ -568,50 +684,6 @@ unsigned char Request_Error(unsigned char error_code) //using 0 //	ќшибочный зап
     TransferBuf[9]=CRC_Check(TransferBuf,9);
 	return 10;
 }
-//-----------------------------------------------------------------------------
-//void ProtoBufHandling(void) //using 0 //процесс обработки прин€того запроса
-//{
-//  switch(RecieveBuf[4])
-//  {
-////---------------------------------------
-//  	case GET_DEV_INFO_REQ:
-//	{
-//		buf_len=Send_Info();	
-//	}
-//	break;
-//	//-----------------------------------
-//	case CHANNEL_SET_PARAMETERS_REQ:
-//	{
-//		buf_len=Channel_Set_Parameters();
-//	}
-//	break;
-////------------------------------------------
-//	case CHANNEL_ALL_GET_DATA_REQ:
-//	{
-//		 buf_len=Channel_All_Get_Data();
-//	}
-//	break;
-////------------------------------------------
-//	case CHANNEL_SET_RESET_STATE_FLAGS_REQ:
-//	{
-//		buf_len=Channel_Set_Reset_State_Flags();
-//	}
-//	break;
-////------------------------------------------
-//	case CHANNEL_SET_DISCRET_OUT_REQ:
-//	{
-//		 buf_len=Channel_Set_Discret_Out();
-//	}
-//	break;
-////------------------------------------------
-//    default:
-//	{
-//	   buf_len=Request_Error(FR_COMMAND_NOT_EXIST);
-//    }								   
-//  }
-//
-//  return;
-//}
 //--------------------------------------------------------------------------------------
 #pragma OT(0,Speed) 
 PT_THREAD(ProtoProcess(struct pt *pt))
@@ -634,87 +706,70 @@ PT_THREAD(ProtoProcess(struct pt *pt))
 		
 		if(RecieveBuf[3]!=ADRESS_DEV)//если адрес совпал	  
 		{
-			PT_RESTART(pt);//если адрес не сошолс€-перезапустим протокол			
+			PT_RESTART(pt);//если адрес не сошeлс€-перезапустим протокол			
 		}	
 				
 	    CRC=RecieveBuf[recieve_count-1];
 				
-		if(CRC_Check(&RecieveBuf,(recieve_count-CRC_LEN))!=CRC)
-		{		
-			PT_RESTART(pt);//если CRC не сошлось-перезапустим протокол	 
-		}
+//		if(CRC_Check(&RecieveBuf,(recieve_count-CRC_LEN))!=CRC)
+//		{		
+//			PT_RESTART(pt);//если CRC не сошлось-перезапустим протокол	 
+//		}
 		PT_YIELD(pt);//дадим другим процессам врем€
-  //-----------------------------
-  		
-		//ProtoBufHandling();//процедура обработки сообщени€
-		  switch(RecieveBuf[4])		   //обработка буфера
-		  {
+  //-----------------------------	
+
+	   //обработка буфера
 		//---------------------------------------
-		  	case GET_DEV_INFO_REQ:
+		  	if(RecieveBuf[4]==GET_DEV_INFO_REQ)
 			{
 				buf_len=Send_Info();	
 			}
-			break;
 			//-----------------------------------
-			case CHANNEL_SET_PARAMETERS_REQ:
+			else if (RecieveBuf[4]==CHANNEL_SET_PARAMETERS_REQ)
 			{
 				buf_len=Channel_Set_Parameters();
 			}
-			break;
 		//------------------------------------------
-			case CHANNEL_ALL_GET_DATA_REQ:
+			else if(RecieveBuf[4]==CHANNEL_ALL_GET_DATA_REQ)
 			{
 				 buf_len=Channel_All_Get_Data();
 			}
-			break;
 		//------------------------------------------
-			case CHANNEL_SET_RESET_STATE_FLAGS_REQ:
+			else if(RecieveBuf[4]==CHANNEL_SET_RESET_STATE_FLAGS_REQ)
 			{
 				buf_len=Channel_Set_Reset_State_Flags();
 			}
-			break;
 		//------------------------------------------
-			case CHANNEL_SET_DISCRET_OUT_REQ:
+			else if(RecieveBuf[4]==CHANNEL_SET_DISCRET_OUT_REQ)
 			{
 				 buf_len=Channel_Set_Discret_Out();
 			}
-			break;
 		//------------------------------------------
-			case TIMER_SET_TIME_REQ:
+			else if(RecieveBuf[4]==TIMER_SET_TIME_REQ)
 			{
 				 PT_INIT(&pt_handle_thread);
 				 PT_SPAWN(pt, &pt_handle_thread, Timer_Set_Time(&pt_handle_thread,&buf_len));
 			}
-			break;
 		//------------------------------------------
-			case TIMER_GET_TIME_REQ:
+			else if(RecieveBuf[4]==TIMER_GET_TIME_REQ)
 			{
 				 PT_INIT(&pt_handle_thread);
 				 PT_SPAWN(pt, &pt_handle_thread, Timer_Get_Time(&pt_handle_thread,&buf_len));
 			}
-			break;
 		//------------------------------------------
-			case MEMORY_WRITE_BUF_REQ:
+			else if(RecieveBuf[4]==MEMORY_WRITE_BUF_REQ)
 			{
 				 PT_INIT(&pt_handle_thread);
 				 PT_SPAWN(pt, &pt_handle_thread, Memory_Write_Buf(&pt_handle_thread,&buf_len));
 			}
-			break;
 		//------------------------------------------
-			case MEMORY_READ_BUF_REQ:
+			else if(RecieveBuf[4]==MEMORY_READ_BUF_REQ)
 			{
 				 PT_INIT(&pt_handle_thread);
 				 PT_SPAWN(pt, &pt_handle_thread, Memory_Read_Buf(&pt_handle_thread,&buf_len));
 			}
-			break;
-		//------------------------------------------
-		    default:
-			{
-			   buf_len=Request_Error(FR_COMMAND_NOT_EXIST);
-		    }								   
-		  }
+//------------------------------------------
 	
-  //-----------------------------		
 		
 		if(buf_len==0)//если в буфере пусто
 		{

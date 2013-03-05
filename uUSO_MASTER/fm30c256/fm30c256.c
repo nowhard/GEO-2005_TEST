@@ -75,7 +75,7 @@ PT_THREAD(FM_Write_Time(struct pt *pt,struct tTime *Time))//запись нового значен
 
 //
 	 i2c_buf[0]=1;//пишем c регистра 1
-	 memcpy(&i2c_buf[1],Time,8);	 
+	 memcpy(&i2c_buf[1],&Time->Calibr,8);	 
 	 PT_SPAWN(pt, &pt_i2c_rw, I2C_RW(&pt_i2c_rw, SLAVEID_RTC,&i2c_buf[0],9,0,0,&ERROR_I2C));//запишем регистры времени и регистр калибровки
 
 	 ControlData &= (~RTC_W);

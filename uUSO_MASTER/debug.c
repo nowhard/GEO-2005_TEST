@@ -57,7 +57,7 @@ void main(void) //using 0
 	while(1)
 	{	
 		ProtoProcess(&pt_proto);
-		I2C_RepeatRead(&pt_i2c_read);	    
+	//	I2C_RepeatRead(&pt_i2c_read);	    
 	}
 }
 //-----------------------------------------------------------------------------
