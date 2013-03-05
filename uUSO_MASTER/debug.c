@@ -18,9 +18,9 @@
 #include "calibrate/calibrate.h"
 #include "pt/pt.h"
 
-#define I2C_ADDR 0x58//0xD0	
+#define I2C_ADDR /*0x57*/0x6F//fm30c256//0x58//0xD0	
 
-extern unsigned char idata i2c_buffer[6];
+extern unsigned char idata i2c_buffer[];
 
 extern struct I2C_Channel xdata i2c_channels;
 extern struct pt pt_proto;
@@ -29,7 +29,7 @@ volatile struct pt pt_i2c_read, pt_freq_measure,pt_sort,pt_i2c_process;
 //volatile unsigned char xdata log_port_in_1  _at_ 0x8001;
 //volatile unsigned char xdata log_port_out_1 _at_ 0x8002;
 //volatile unsigned char xdata log_port_out_2 _at_ 0x8003;
-
+ extern struct Channel xdata channels[CHANNEL_NUMBER];
 //-----------------------------------------
 void Set_Handlers(void);//установить обработчики событий
 PT_THREAD(I2C_RepeatRead(struct pt *pt));
@@ -66,10 +66,13 @@ void main(void) //using 0
 
 	EA=1;
 
-	i2c_buffer[0]=0x0;//сброс флага инициализации
-//	I2C_Write_Buf(I2C_ADDR,&buf,1);
+	i2c_buffer[0]=0x1;//сброс флага инициализации
+	i2c_buffer[1]=0x0;//сброс флага инициализации
 
-	I2C_Repeat_Start_Read(I2C_ADDR,&i2c_buffer,1,i2c_channels.I2C_CHNL.i2c_buf,10);	  //производим первое чтение заранее
+
+
+	I2C_Repeat_Start_Read(I2C_ADDR,&i2c_buffer,2,NULL,0);	  //производим первое чтение заранее
+
 	while(1)
 	{	
 		ProtoProcess(&pt_proto);
@@ -88,9 +91,20 @@ void main(void) //using 0
 	
 	  while(1) 
 	  {
-			PT_DELAY(pt,15);
-			//buf[0]=0x0;  	//номер канала, который читаем с I2C устройства
-			I2C_Repeat_Start_Read(I2C_ADDR,&i2c_buffer,1,i2c_channels.I2C_CHNL.i2c_buf,10);	//исправить сдвиг адресации
+			PT_DELAY(pt,20);
+  			
+			i2c_buffer[0]=0x0;//
+			i2c_buffer[1]=0x1;//
+			I2C_Repeat_Start_Read(I2C_ADDR,&i2c_buffer,2,NULL,0);	//исправить сдвиг адресации
+
+
+			PT_DELAY(pt,20);
+			i2c_buffer[0]=0x0;//
+			i2c_buffer[1]=0x0;//
+			I2C_Repeat_Start_Read(I2C_ADDR,&i2c_buffer,2,i2c_channels.I2C_CHNL.i2c_buf,9);	//исправить сдвиг адресации
+			PT_DELAY(pt,20);
+			channels[9].channel_data=i2c_channels.I2C_CHNL.i2c_buf[2];
+			channels[10].channel_data=i2c_channels.I2C_CHNL.i2c_buf[3];
 			WDT_Clear();
 	  }
 	  PT_END(pt);

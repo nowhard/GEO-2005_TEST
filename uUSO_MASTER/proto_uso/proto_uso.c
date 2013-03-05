@@ -835,7 +835,7 @@ PT_THREAD(ProtoProcess(struct pt *pt))
 			SBUF=TransferBuf[transf_count];//передача байта, остальным займется автомат
 			transf_count++;//инкрементируем счетчик переданных
 			
-			PT_DELAY(pt,20);			
+			PT_DELAY(pt,200);			
 		}
   //-----------------------------
   }

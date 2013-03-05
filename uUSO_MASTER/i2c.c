@@ -15,7 +15,7 @@ volatile unsigned char i2c_mas[10]={0};
 
 volatile struct I2C_Channel xdata i2c_channels;
 
-unsigned char idata i2c_buffer[6]={0};
+unsigned char idata i2c_buffer[16]={0};
 
 extern volatile unsigned char xdata  STATE_BYTE;
 
@@ -120,6 +120,19 @@ void I2C_Repeat_Start_Read(unsigned char addr,unsigned char *par_buf,unsigned ch
 			PT_RESTART(pt);	
 	  }
 	  //PT_YIELD(pt);//дадим другим процессам время
+////------------------------------------------------------------------------------------------------------
+		if(byte_num_read==0) //если читать не надо-стоп
+		{
+		  //-------I2C STOP--------
+		  	MCO=0;
+		    MDO=0;	  				
+			MCO=1;				
+			PT_YIELD(pt);//дадим другим процессам время										
+			MDO=1;
+		  //------------------------
+		  	ERROR_I2C=0;	  		
+			PT_RESTART(pt);				
+		}
 ////------------------------------------------------------------------------------------------------------
 	  //-----------повторный старт--------
 	   //-------I2C START--------
