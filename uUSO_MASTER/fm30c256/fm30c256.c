@@ -8,7 +8,7 @@
 #define FM_READ_BUFFER		3	// начать чтение FRAM
 #define FM_WRITE_BUFFER 	4	// начать запись в FRAM
 
-volatile unsigned char I2C_THREAD=FM_READ_TIME;
+volatile unsigned char I2C_THREAD=I2C_IDLE;
 
 extern struct pt pt_i2c_rw;
 //----------------------------------------------------------------------------
@@ -20,7 +20,9 @@ PT_THREAD(FM_Read_Time(struct pt *pt,struct tTime *Time))//чтение времени с fm30
  static unsigned char i2c_buf[16];
   PT_BEGIN(pt);
 	 
-//	 PT_WAIT_UNTIL(pt,(I2C_THREAD==FM_READ_TIME)); //ждем разрешения на исполнение потока
+	 PT_WAIT_UNTIL(pt,(I2C_THREAD==I2C_IDLE)); //ждем разрешения на исполнение потока
+	 I2C_THREAD=FM_READ_TIME; //блокируем доступ к потоку
+
 	 PT_INIT(&pt_i2c_rw);
 
 	 i2c_buf[0]=0;//читаем регистр 0
@@ -52,10 +54,12 @@ PT_THREAD(FM_Write_Time(struct pt *pt,struct tTime *Time))//запись нового значен
 {
  static unsigned char ERROR_I2C=0;
  static unsigned char ControlData=0;//регистр контроля часов
- static unsigned char i2c_buf[16]={0x0,0x0,0x0,0x0,0x0,0x1,0x1,0x1,0x0,0xAA,0xAA,0xAA,0xAA,0xAA,0xAA};
+ static unsigned char i2c_buf[16];//={0x0,0x0,0x0,0x0,0x0,0x1,0x1,0x1,0x0,0xAA,0xAA,0xAA,0xAA,0xAA,0xAA};
   PT_BEGIN(pt);
 
-  //	 PT_WAIT_UNTIL(pt,(I2C_THREAD==FM_WRITE_TIME));
+  	 PT_WAIT_UNTIL(pt,(I2C_THREAD==I2C_IDLE));
+	 I2C_THREAD=FM_WRITE_TIME;
+  
 	 PT_INIT(&pt_i2c_rw);
 
  	 i2c_buf[0]=0;//читаем регистр 0
@@ -94,9 +98,9 @@ PT_THREAD(FM_Read_Mem(struct pt *pt,unsigned char *buf,unsigned char len,unsigne
 	 static unsigned char ERROR_I2C=0;
   PT_BEGIN(pt);
      
+  	 PT_WAIT_UNTIL(pt,(I2C_THREAD==I2C_IDLE));
+     I2C_THREAD=FM_READ_BUFFER;
 
-
-  //	 PT_WAIT_UNTIL(pt,(I2C_THREAD==FM_READ_BUFFER));
 	 PT_INIT(&pt_i2c_rw);
 	 len&=0x7FFF;	 
 	
@@ -116,7 +120,9 @@ PT_THREAD(FM_Write_Mem(struct pt *pt,unsigned char *buf,unsigned char len,unsign
 
   PT_BEGIN(pt);
 
- // 	 PT_WAIT_UNTIL(pt,(I2C_THREAD==FM_WRITE_BUFFER));
+  	 PT_WAIT_UNTIL(pt,(I2C_THREAD==I2C_IDLE));
+ 	 I2C_THREAD=FM_WRITE_BUFFER;
+	
 	 PT_INIT(&pt_i2c_rw);
 	 len&=0x7FFF;	 
 	

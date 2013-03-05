@@ -65,7 +65,7 @@ void main(void) //using 0
  //---------------------------------
  PT_THREAD(I2C_RepeatRead(struct pt *pt))//поток чтения I2C
  {  
-	  static struct tTime Time={0x0,0x0,0,0,0,1,1,1,0};
+	  static struct tTime Time={0x4,0x0,0,0,0,1,1,1,0};
 	  static struct tTime Time2;
 	  static unsigned char buf[16]={0x8,0x7,0x6,0x5};
 	  static unsigned char buf2[16]={0x0,0x0,0x0,0x0};

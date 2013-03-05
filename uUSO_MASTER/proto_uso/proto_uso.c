@@ -44,38 +44,32 @@ unsigned char xdata VERSION[/*DEVICE_VER_LENGTH_SYM*/] ="\x30\x30\x30\x30\x31";	
 
 volatile unsigned char xdata ADRESS_DEV=0x1;
 
-//volatile unsigned char xdata dev_desc_len=20;//длина описания устройства
+
 //--------------------------------global variable------------------------------------
 
-volatile unsigned char idata	RECIEVED=0;//принято
+volatile unsigned char xdata	RECIEVED=0;//принято
 volatile unsigned char xdata    recieve_count;//счетчик приемного буфера
 volatile unsigned char xdata	transf_count;//счетчик передаваемых байтов	   
 volatile unsigned char xdata	buf_len;//длина передаваемого буфера
 
-//------------------------флаги ошибок--------------------------------
-//volatile unsigned char xdata CRC_ERR;	//ошибка сrc
-//volatile unsigned char xdata COMMAND_ERR;//неподдерживаемая команда
-
-//volatile unsigned char xdata TIMEOUT;//таймаут 
-
-volatile unsigned char idata  CUT_OUT_NULL;//флаг-вырезаем 0 после 0xD7
+volatile unsigned char xdata  CUT_OUT_NULL;//флаг-вырезаем 0 после 0xD7
 volatile unsigned char xdata frame_len=0;//длина кадра, которую вытаскиваем из шестого байта кадра
 //--------------------------------------------------------------------
 volatile unsigned char xdata  RecieveBuf[MAX_LENGTH_REC_BUF]={0} ; //буфер принимаемых данных
 volatile unsigned char xdata 			*TransferBuf;
 //--------------------------------------------------------------------
 volatile unsigned char xdata  STATE_BYTE=0xC0;//байт состояния устройства
-volatile unsigned char idata symbol=0xFF;//принятый символ
+volatile unsigned char xdata symbol=0xFF;//принятый символ
 
 volatile struct pt pt_proto;
 //-----------------------------------------------------------------------------------
-union //объединение для конвертирования char->long
-{
-	float result_float;
-	unsigned char result_char[4];
-}
-sym_8_to_float;
-//extern unsigned char idata i2c_buffer[6];
+//union //объединение для конвертирования char->long
+//{
+//	float result_float;
+//	unsigned char result_char[4];
+//}
+//sym_8_to_float;
+
 //----------------------------------------------------------------------------------
 volatile unsigned char xdata log_port_in_1  _at_ 0x8001;
 volatile unsigned char xdata log_port_out_1 _at_ 0x8002;
@@ -531,6 +525,30 @@ unsigned char Channel_Set_Discret_Out(void)//установить дискретные выводы соглас
 	   return Request_Error(FR_SUCCESFUL);	
 }
 //-----------------------------------------------------------------------------
+PT_THREAD(Timer_Set_Time(struct pt *pt, unsigned char *buffer_len))//Установить параметры часов реального времени
+{
+  PT_BEGIN(pt);
+  PT_END(pt);
+}
+//-----------------------------------------------------------------------------
+PT_THREAD(Timer_Get_Time(struct pt *pt, unsigned char *buffer_len))//Считать параметры часов реального времени
+{
+  PT_BEGIN(pt);
+  PT_END(pt);
+}
+//-----------------------------------------------------------------------------
+PT_THREAD(Memory_Write_Buf(struct pt *pt, unsigned char *buffer_len))//Записать буфер в памать I2C
+{
+  PT_BEGIN(pt);
+  PT_END(pt);
+}
+//-----------------------------------------------------------------------------
+PT_THREAD(Memory_Read_Buf(struct pt *pt, unsigned char *buffer_len))//Считать буфер из памяти I2C
+{
+  PT_BEGIN(pt);
+  PT_END(pt);
+}
+//-----------------------------------------------------------------------------
 unsigned char Channel_Set_Reset_State_Flags(void) //using 0 //	Установка/Сброс флагов состояния 
 {
 	STATE_BYTE=0x40;
@@ -551,55 +569,56 @@ unsigned char Request_Error(unsigned char error_code) //using 0 //	Ошибочный зап
 	return 10;
 }
 //-----------------------------------------------------------------------------
-void ProtoBufHandling(void) //using 0 //процесс обработки принятого запроса
-{
-  switch(RecieveBuf[4])
-  {
-//---------------------------------------
-  	case GET_DEV_INFO_REQ:
-	{
-		buf_len=Send_Info();	
-	}
-	break;
-	//-----------------------------------
-	case CHANNEL_SET_PARAMETERS_REQ:
-	{
-		buf_len=Channel_Set_Parameters();
-	}
-	break;
-//------------------------------------------
-	case CHANNEL_ALL_GET_DATA_REQ:
-	{
-		 buf_len=Channel_All_Get_Data();
-	}
-	break;
-//------------------------------------------
-	case CHANNEL_SET_RESET_STATE_FLAGS_REQ:
-	{
-		buf_len=Channel_Set_Reset_State_Flags();
-	}
-	break;
-//------------------------------------------
-	case CHANNEL_SET_DISCRET_OUT_REQ:
-	{
-		 buf_len=Channel_Set_Discret_Out();
-	}
-	break;
-//------------------------------------------
-    default:
-	{
-	   buf_len=Request_Error(FR_COMMAND_NOT_EXIST);
-    }								   
-  }
-
-  return;
-}
+//void ProtoBufHandling(void) //using 0 //процесс обработки принятого запроса
+//{
+//  switch(RecieveBuf[4])
+//  {
+////---------------------------------------
+//  	case GET_DEV_INFO_REQ:
+//	{
+//		buf_len=Send_Info();	
+//	}
+//	break;
+//	//-----------------------------------
+//	case CHANNEL_SET_PARAMETERS_REQ:
+//	{
+//		buf_len=Channel_Set_Parameters();
+//	}
+//	break;
+////------------------------------------------
+//	case CHANNEL_ALL_GET_DATA_REQ:
+//	{
+//		 buf_len=Channel_All_Get_Data();
+//	}
+//	break;
+////------------------------------------------
+//	case CHANNEL_SET_RESET_STATE_FLAGS_REQ:
+//	{
+//		buf_len=Channel_Set_Reset_State_Flags();
+//	}
+//	break;
+////------------------------------------------
+//	case CHANNEL_SET_DISCRET_OUT_REQ:
+//	{
+//		 buf_len=Channel_Set_Discret_Out();
+//	}
+//	break;
+////------------------------------------------
+//    default:
+//	{
+//	   buf_len=Request_Error(FR_COMMAND_NOT_EXIST);
+//    }								   
+//  }
+//
+//  return;
+//}
 //--------------------------------------------------------------------------------------
 #pragma OT(0,Speed) 
 PT_THREAD(ProtoProcess(struct pt *pt))
  {
 
  static unsigned char  CRC=0x0;
+ static struct pt pt_handle_thread;
   PT_BEGIN(pt);
 
   while(1) 
@@ -626,7 +645,77 @@ PT_THREAD(ProtoProcess(struct pt *pt))
 		}
 		PT_YIELD(pt);//дадим другим процессам время
   //-----------------------------
-  		ProtoBufHandling();//процедура обработки сообщения	
+  		
+		//ProtoBufHandling();//процедура обработки сообщения
+		  switch(RecieveBuf[4])		   //обработка буфера
+		  {
+		//---------------------------------------
+		  	case GET_DEV_INFO_REQ:
+			{
+				buf_len=Send_Info();	
+			}
+			break;
+			//-----------------------------------
+			case CHANNEL_SET_PARAMETERS_REQ:
+			{
+				buf_len=Channel_Set_Parameters();
+			}
+			break;
+		//------------------------------------------
+			case CHANNEL_ALL_GET_DATA_REQ:
+			{
+				 buf_len=Channel_All_Get_Data();
+			}
+			break;
+		//------------------------------------------
+			case CHANNEL_SET_RESET_STATE_FLAGS_REQ:
+			{
+				buf_len=Channel_Set_Reset_State_Flags();
+			}
+			break;
+		//------------------------------------------
+			case CHANNEL_SET_DISCRET_OUT_REQ:
+			{
+				 buf_len=Channel_Set_Discret_Out();
+			}
+			break;
+		//------------------------------------------
+			case TIMER_SET_TIME_REQ:
+			{
+				 PT_INIT(&pt_handle_thread);
+				 PT_SPAWN(pt, &pt_handle_thread, Timer_Set_Time(&pt_handle_thread,&buf_len));
+			}
+			break;
+		//------------------------------------------
+			case TIMER_GET_TIME_REQ:
+			{
+				 PT_INIT(&pt_handle_thread);
+				 PT_SPAWN(pt, &pt_handle_thread, Timer_Get_Time(&pt_handle_thread,&buf_len));
+			}
+			break;
+		//------------------------------------------
+			case MEMORY_WRITE_BUF_REQ:
+			{
+				 PT_INIT(&pt_handle_thread);
+				 PT_SPAWN(pt, &pt_handle_thread, Memory_Write_Buf(&pt_handle_thread,&buf_len));
+			}
+			break;
+		//------------------------------------------
+			case MEMORY_READ_BUF_REQ:
+			{
+				 PT_INIT(&pt_handle_thread);
+				 PT_SPAWN(pt, &pt_handle_thread, Memory_Read_Buf(&pt_handle_thread,&buf_len));
+			}
+			break;
+		//------------------------------------------
+		    default:
+			{
+			   buf_len=Request_Error(FR_COMMAND_NOT_EXIST);
+		    }								   
+		  }
+	
+  //-----------------------------		
+		
 		if(buf_len==0)//если в буфере пусто
 		{
 			PT_RESTART(pt);//перезапустим протокол	
