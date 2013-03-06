@@ -2,11 +2,8 @@
 #define PROTO_USO_H
 
 #include <ADuC845.h>
-#include "tic.h"
 #include "channels.h"
 #include "adc.h"
-#include "calibrate/calibrate.h"
-#include "ulongsort.h"
 #include <string.h>
 
 #define HI(x) ((x)>>8)

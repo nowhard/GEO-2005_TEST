@@ -26,10 +26,7 @@ PT_THREAD(I2C_RepeatRead(struct pt *pt));
 void main(void) //using 0
 {			   
 	EA = 0;
-	
-	//CFG845=0x1;//enable xram
 
-	
 	PLLCON&=PLLCON_VAL;//настройка частоты процессора
 	
 	ChannelsInit();//инициализация настроек каналов
@@ -38,7 +35,7 @@ void main(void) //using 0
 	ADC_Initialize();
 	UART_Init();
 
-	//WDT_Init(WDT_2000);//включить сторожевой таймер
+	WDT_Init(WDT_2000);//включить сторожевой таймер
 	I2C_Init();
 
 
@@ -53,44 +50,12 @@ void main(void) //using 0
 	while(1)
 	{	
 		ProtoProcess(&pt_proto);
-	//	I2C_RepeatRead(&pt_i2c_read);	    
+		WDT_Clear();	    
 	}
 }
-//-----------------------------------------------------------------------------
-//#pragma OT(0,Speed)
-// //---------------------------------
-// PT_THREAD(I2C_RepeatRead(struct pt *pt))//поток чтения I2C
-// {  
-//	  static struct tTime Time={0x4,0x0,0,0,0,1,1,1,0};
-//	  static struct tTime Time2;
-//	  static unsigned char buf[16]={0x8,0x7,0x6,0x5};
-//	  static unsigned char buf2[16]={0x0,0x0,0x0,0x0};
-//	  PT_BEGIN(pt);	
-//
-//	  PT_SPAWN(pt, &pt_fm_read, FM_Write_Time(&pt_fm_read,&Time));
-//	  while(1) 
-//	  {
-//			
-//			PT_DELAY(pt,50);
-//			// PT_SPAWN(pt, &pt_fm_read, FM_Write_Time(&pt_fm_read,&Time));
-//			PT_SPAWN(pt, &pt_fm_read, FM_Read_Time(&pt_fm_read,&Time2));	//читаем время в структуру
-//			//PT_SPAWN(pt, &pt_i2c_write_mem, FM_Write_Mem(&pt_i2c_write_mem,&buf,4,0x0));
-//		//	PT_DELAY(pt,20);
-//		///	PT_SPAWN(pt, &pt_i2c_read_mem, FM_Read_Mem(&pt_i2c_read_mem,&buf2,4,0x0));
-//			channels[9].channel_data=Time2.Minute;//Time2.Second;
-//			channels[10].channel_data=Time2.Second;
-//
-//		//	channels[9].channel_data=buf2[0];
-//		//	channels[10].channel_data=buf2[1];
-//		//	WDT_Clear();
-//	  }
-//	  PT_END(pt);
-//
-// }
 //-----------------------------------
 void Timer1_Interrupt(void) interrupt 3  //таймер шедулера
 {
-//---------------------------------------
 	TH1	= TH1_VAL; ///200 Hz;
 	TL1 = TL1_VAL;//
 	pt_i2c_read.pt_time++;
