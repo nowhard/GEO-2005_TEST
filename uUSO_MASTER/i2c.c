@@ -192,7 +192,6 @@ static PT_THREAD(I2C_Write_Buf(struct pt *pt,unsigned char *buf,unsigned char le
 	  write_byte_counter=0;
 	  while(write_byte_counter<len)  //цикл передачи буфера
 	  {
-	  	//	bit_counter=0;
 
 			write_byte=buf[write_byte_counter];
 			write_byte_counter++;

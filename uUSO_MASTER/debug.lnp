@@ -6,10 +6,10 @@
 "proto_uso.obj",
 "channels.obj",
 "timer0.obj",
-"timer1.obj",
 "timer2.obj",
 "i2c.obj",
-"fm30c256.obj" 
+"fm30c256.obj",
+"timer1.obj" 
 TO "debug" 
 RAMSIZE(256) 
 XDATA( 0X0000-0X8002 )
