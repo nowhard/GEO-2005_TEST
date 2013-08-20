@@ -19,6 +19,8 @@ extern struct pt pt_proto;
 volatile struct pt pt_i2c_read,pt_fm_read,pt_i2c_rw,pt_i2c_read_buf, pt_i2c_write_buf, pt_i2c_read_mem,pt_i2c_write_mem;
 
 // extern struct Channel xdata channels[CHANNEL_NUMBER];
+
+//unsigned char ee_crc=0;
 //-----------------------------------------
 PT_THREAD(I2C_RepeatRead(struct pt *pt));
  //---------------------------------------
@@ -46,6 +48,12 @@ void main(void) //using 0
 	PT_INIT(&pt_i2c_write_mem);
 
 	EA=1;
+
+//   ee_crc=EEPROM_Get_CRC();
+//
+//	EEPROM_Set_Symbol(0xA);
+//
+//	ee_crc=EEPROM_Get_CRC();
 
 	while(1)
 	{	

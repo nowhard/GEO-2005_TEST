@@ -22,4 +22,6 @@ sfr16 EADR=0xC6;
 unsigned int EEPROM_Read(void *buffer,unsigned int len,unsigned int addr);//прочитать несколько страниц с адреса
 unsigned int  EEPROM_Write(void *buffer,unsigned int len,unsigned int addr);//записать буфер по адресу
 void 		  EEPROM_Erase(void);// 
+void EEPROM_Set_Symbol(unsigned char sym);  //запишем символ во все страницы памяти
+unsigned char EEPROM_Get_CRC(void);//получим CRC EEPROM
 #endif 

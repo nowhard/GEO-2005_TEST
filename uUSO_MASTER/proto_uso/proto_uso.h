@@ -117,6 +117,9 @@ PT_THREAD(Timer_Get_Time(struct pt *pt, unsigned char *buffer_len));//Считать па
 PT_THREAD(Memory_Write_Buf(struct pt *pt, unsigned char *buffer_len));//Записать буфер в памать I2C
 PT_THREAD(Memory_Read_Buf(struct pt *pt, unsigned char *buffer_len));//Считать буфер из памяти I2C
 
+unsigned char EEMEM_Set_Symbol(void);//установить все страницы памяти заданным в кадре символом
+unsigned char EEMEM_Get_CRC(void);//получить crc всей EEPROM
+
 
 
 //void ProtoBufHandling(void); //процесс обработки принятого запроса

@@ -7,8 +7,8 @@ volatile struct Channel xdata channels[CHANNEL_NUMBER] /*_at_ 0x20*/;
 void ChannelsInit(void) //using 0//инициализация структуры каналов
 {
 	
-	Restore_Channels_Data();
-	if(channels[0].settings.set.type!=0 || channels[1].settings.set.type!=0)
+	//Restore_Channels_Data();
+	//if(channels[0].settings.set.type!=0 || channels[1].settings.set.type!=0)
 	{	
 		channels[0].number=0;		  // номера каналов должны строго идти последовательно и начинаться с нуля
 		channels[0].settings.set.type=0;
