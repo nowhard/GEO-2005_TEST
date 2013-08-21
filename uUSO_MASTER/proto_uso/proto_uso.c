@@ -717,14 +717,29 @@ unsigned char Channel_Set_Reset_State_Flags(void) //using 0 //	Установка/Сброс ф
 	return	Request_Error(FR_SUCCESFUL);//ошибки нет, подтверждение
 }
 //-----------------------------------------------------------------------------
-unsigned char EEMEM_Set_Symbol(void)//установить все страницы памяти заданным в кадре символом
+unsigned char EEMEM_Set_Symbol(void)//установить все страницы памяти заданным в кадре символом //кадр запроса:[00][d7][29][ADDR][EEMEM_SET_SYM_REQ][LEN_FRAME][SYM][CRC] ;ответ-succesfull
 {
-
+	 unsigned char sym=0x0;
+	 sym=RecieveBuf[6];
+	 EEPROM_Set_Symbol(sym);
+	 return	Request_Error(FR_SUCCESFUL);//ошибки нет, подтверждение
 }
 //-----------------------------------------------------------------------------
-unsigned char EEMEM_Get_CRC(void)//получить crc всей EEPROM
+unsigned char EEMEM_Get_CRC(void)//получить crc всей EEPROM	  //кадр запроса :[00][d7][29][ADDR][EMEM_GET_CRC_REQ][LEN_FRAME][SYM][CRC]; ответ-[00][d7][29][ADDR][EMEM_GET_CRC_RESP][LEN_FRAME][EEMEM_CRC][EEMEM_BAD][CRC]
 {
-	
+	unsigned char sym=0;
+
+	sym=RecieveBuf[6];
+		
+	TransferBuf[0]=0x00;TransferBuf[1]=0xD7;TransferBuf[2]=0x29;
+    TransferBuf[3]=ADRESS_DEV;  // адрес узла
+    TransferBuf[4]=EEMEM_READ_CRC_RESP;  // код операции
+	TransferBuf[5]=0x03;// длина данных
+	TransferBuf[6]=EEPROM_Get_CRC(); // байт статуса узла
+	TransferBuf[7]=EEPROM_Get_Num_Bad(sym);
+	  	  
+    TransferBuf[8]=CRC_Check(TransferBuf,8);
+	return 9;
 }
 //-----------------------------------------------------------------------------
 unsigned char Request_Error(unsigned char error_code) //using 0 //	Ошибочный запрос/ответ;
@@ -769,10 +784,10 @@ PT_THREAD(ProtoProcess(struct pt *pt))
 				
 	    CRC=RecieveBuf[recieve_count-1];
 				
-		if(CRC_Check(&RecieveBuf,(recieve_count-CRC_LEN))!=CRC)
-		{		
-			PT_RESTART(pt);//если CRC не сошлось-перезапустим протокол	 
-		}
+//		if(CRC_Check(&RecieveBuf,(recieve_count-CRC_LEN))!=CRC)
+//		{		
+//			PT_RESTART(pt);//если CRC не сошлось-перезапустим протокол	 
+//		}
 		PT_YIELD(pt);//дадим другим процессам время
   //-----------------------------	
 
@@ -826,6 +841,16 @@ PT_THREAD(ProtoProcess(struct pt *pt))
 				 PT_INIT(&pt_handle_thread);
 				 PT_SPAWN(pt, &pt_handle_thread, Memory_Read_Buf(&pt_handle_thread,&buf_len));
 			}
+		//------------------------------------------
+			else if(RecieveBuf[4]==EEMEM_READ_CRC_REQ)
+			{
+				buf_len=EEMEM_Get_CRC();
+			}
+		//------------------------------------------
+			else if(RecieveBuf[4]==EEMEM_WRITE_SYMBOL_REQ)
+			{
+				buf_len=EEMEM_Set_Symbol();
+			}
 //------------------------------------------
 	
 		
@@ -853,16 +878,16 @@ PT_THREAD(ProtoProcess(struct pt *pt))
  PT_END(pt);
 }
 //-----------------------CRC------------------------------------------------------------
-#pragma OT(6,Speed)
-  unsigned char CRC_Check( unsigned char xdata *Spool_pr,unsigned char Count_pr ) 
- {
-     unsigned char crc = 0x0;
-
-     while (Count_pr--)
-         crc = Crc8Table[crc ^ *Spool_pr++];
-
-     return crc;
- }
+//#pragma OT(6,Speed)
+//  unsigned char CRC_Check( unsigned char xdata *Spool_pr,unsigned char Count_pr ) 
+// {
+//     unsigned char crc = 0x0;
+//
+//     while (Count_pr--)
+//         crc = Crc8Table[crc ^ *Spool_pr++];
+//
+//     return crc;
+// }
 //-----------------------------------------------------------------------------------------------
 //void Store_Dev_Address_Desc(unsigned char addr,void* name,void* ver,void* desc,unsigned char desc_len)//сохранить в ППЗУ новый адрес устройства, имя, версию, описание
 //{

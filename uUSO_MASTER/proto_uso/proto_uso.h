@@ -69,6 +69,13 @@
 #define  MEMORY_READ_BUF_REQ			0x1E// считать буфер из I2C памяти
 #define  MEMORY_READ_BUF_RESP			0x1F
 
+#define  EEMEM_WRITE_SYMBOL_REQ			0x20
+#define  EEMEM_WRITE_SYMBOL_RESP		0x21
+
+#define  EEMEM_READ_CRC_REQ				0x22
+#define  EEMEM_READ_CRC_RESP			0x23
+
+
 #define  CHANNEL_SET_ADDRESS_DESC		0xCD //установить новый адрес устройства, имя, описание, версию прошивки и комментарий
 
 #define  CHANNEL_SET_CALIBRATE			0xCA//установить верхнюю или нижнюю точку двухточечной калибровки

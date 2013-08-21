@@ -24,4 +24,5 @@ unsigned int  EEPROM_Write(void *buffer,unsigned int len,unsigned int addr);//за
 void 		  EEPROM_Erase(void);// 
 void EEPROM_Set_Symbol(unsigned char sym);  //запишем символ во все страницы памяти
 unsigned char EEPROM_Get_CRC(void);//получим CRC EEPROM
+unsigned char EEPROM_Get_Num_Bad(unsigned char sym);//получим количество битых
 #endif 

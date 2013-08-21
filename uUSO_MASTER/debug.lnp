@@ -9,7 +9,8 @@
 "timer2.obj",
 "i2c.obj",
 "fm30c256.obj",
-"timer1.obj" 
+"timer1.obj",
+"crc_table.obj" 
 TO "debug" 
 RAMSIZE(256) 
 XDATA( 0X0000-0X8002 )

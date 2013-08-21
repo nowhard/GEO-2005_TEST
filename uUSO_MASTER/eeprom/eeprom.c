@@ -81,15 +81,34 @@ unsigned char EEPROM_Get_CRC(void)//получим CRC EEPROM
 	 unsigned char crc = 0x0,ed1,ed2,ed3,ed4;
 	 unsigned int addr=0x0;
 
+	 unsigned int delay=0;
+
+	 EA=0;
+
      while (addr<EEMEM_SIZE)
 	 {
          
 		   EADR=addr;
 	   	   ECON=EE_READ_PAGE;
+
+//		   delay=10;
+//		   while(delay--);
 		   
 		   ed1=EDATA1; 
-		   ed2=EDATA2; 
+		   
+//		   delay=10;
+//		   while(delay--);
+		   
+		   ed2=EDATA2;
+		   
+//		   delay=10;
+//		   while(delay--);		    
+//		   
 		   ed3=EDATA3; 
+
+//		   delay=10;
+//		   while(delay--);
+
 		   ed4=EDATA4; 
 		   
 		   addr++;
@@ -98,8 +117,65 @@ unsigned char EEPROM_Get_CRC(void)//получим CRC EEPROM
 		  crc = Crc8Table[crc ^ ed2];
 		  crc = Crc8Table[crc ^ ed3];
 		  crc = Crc8Table[crc ^ ed4];
+
+//		  delay=10;
+//		  while(delay--);
 	 }
 
+	 EA=1;
      return crc;
 }
+//----------------------------------------------------------------------------------
+unsigned char EEPROM_Get_Num_Bad(unsigned char sym)//получим количество битых
+{
+	 unsigned char ed1,ed2,ed3,ed4,num_bad=0;
+	 unsigned int addr=0x0;
 
+	 unsigned int delay=0;
+
+	 EA=0;
+
+     while (addr<EEMEM_SIZE)
+	 {
+         
+		   EADR=addr;
+	   	   ECON=EE_READ_PAGE;
+		   
+//		   delay=10;
+//		   while(delay--);	   
+		   
+		   ed1=EDATA1; 
+		   
+//		   delay=10;
+//		   while(delay--);
+		   
+		   ed2=EDATA2;
+		   
+//		   delay=10;
+//		   while(delay--);		    
+		   
+		   ed3=EDATA3; 
+
+//		   delay=10;
+//		   while(delay--);
+
+		   ed4=EDATA4;  
+
+		   if((ed1!=sym)||(ed2!=sym)||(ed3!=sym)||(ed4!=sym))
+		   {
+		   		if(num_bad<255)
+				{
+					num_bad++;
+				}
+		   }
+		   
+		   addr++;	
+		   
+//		   delay=10;
+//		   while(delay--);	 
+	 }
+
+	 EA=1;
+
+     return num_bad;
+}
