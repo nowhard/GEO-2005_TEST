@@ -223,8 +223,8 @@ void Protocol_Init(void) //using 0
 	STATE_BYTE=0xC0;
 	PT_INIT(&pt_proto);
 
-	log_port_out_1=channels[9].channel_data=0xFF;
-    log_port_out_2=channels[10].channel_data=0xFF;
+	log_port_out_1=channels[9].channel_data=0x0;//0xFF;
+    log_port_out_2=channels[10].channel_data=0x0;//0xFF;
 	return;
 }
 //-----------------------------------------------------------------------------

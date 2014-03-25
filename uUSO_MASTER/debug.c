@@ -21,6 +21,9 @@ volatile struct pt pt_i2c_read,pt_fm_read,pt_i2c_rw,pt_i2c_read_buf, pt_i2c_writ
 // extern struct Channel xdata channels[CHANNEL_NUMBER];
 
 //unsigned char ee_crc=0;
+
+extern unsigned char xdata log_port_out_1;
+extern unsigned char xdata log_port_out_2;
 //-----------------------------------------
 PT_THREAD(I2C_RepeatRead(struct pt *pt));
  //---------------------------------------
@@ -28,6 +31,9 @@ PT_THREAD(I2C_RepeatRead(struct pt *pt));
 void main(void) //using 0
 {			   
 	EA = 0;
+
+	log_port_out_1=0x0;
+	log_port_out_2=0x0;
 
 	PLLCON&=PLLCON_VAL;//настройка частоты процессора
 	
