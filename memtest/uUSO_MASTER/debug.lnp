@@ -1,0 +1,4 @@
+"debug.obj" 
+TO "debug" 
+RAMSIZE(256) 
+XDATA( 0X0000-0X8002 )
